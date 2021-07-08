@@ -1,4 +1,4 @@
-# ebay-scraper-
+# ebay-products-scraper
 An ebay-scraper project developed using scrapy framework. It will scrap product details and images from ebay.com.
 
 # Dependencies
