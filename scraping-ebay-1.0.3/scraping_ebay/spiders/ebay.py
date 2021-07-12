@@ -9,7 +9,7 @@ class EbaySpider(scrapy.Spider):
 	start_urls = ["https://www.ebay.com"]
 
 	# Allow a custom parameter (-a flag in the scrapy command)
-	def __init__(self, search="nintendo switch console",pages=5):
+	def __init__(self, search="nintendo switch console",pages=1):
 		self.search_string = search
 		self.pages = int(pages)+1
 
@@ -177,11 +177,20 @@ class EbaySpider(scrapy.Spider):
 		url = data['URL']
 		ProdId = url.split('itm/')[1].lstrip().split('?')[0]
 		data['prod_id']=ProdId
+		# changing data pipe line a bit
+		# it will append data into data 
+		data['images_url']=linklist
+		'''
+		for image_url in linklist:
+			data['images_url'].append(image_url)
 		# yield as dictionery
-		yield {'data':data,'images':[linklist,str(ProdId)]}
+		'''
+		#yield {'data':data}
+		yield data
 		
 		
 		
+
 
 
 
