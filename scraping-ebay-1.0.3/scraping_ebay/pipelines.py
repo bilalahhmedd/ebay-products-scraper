@@ -49,12 +49,12 @@ class myImagePipeline(ImagesPipeline):
 class customImagePipeline(ImagesPipeline):
 
     def get_media_requests(self, item, info):
-        #data = item.get('data')
-        #print('type of data: ',type(data))
-        urls = item['images_url']
-        #print('type of images', type(images))
-        dir_id = item['prod_id']
-        
+        data = item.get('data')
+        print('type of data: ',type(data))
+        images = item.get('images')
+        print('type of images', type(images))
+        urls = images[0]
+        dir_id = images[1]
         for File_number, url in enumerate(urls):
             yield Request(
                 url=url,
@@ -74,5 +74,4 @@ class customImagePipeline(ImagesPipeline):
         dir_name = request.meta.get('dir')
         
         return f"Images/{dir_name}/{file_name}.jpg"
-
 

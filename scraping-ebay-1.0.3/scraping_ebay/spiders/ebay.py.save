@@ -177,6 +177,7 @@ class EbaySpider(scrapy.Spider):
 		url = data['URL']
 		ProdId = url.split('itm/')[1].lstrip().split('?')[0]
 		data['prod_id']=ProdId
+		
 		# yield as dictionery
 		yield {'data':data,'images':[linklist,str(ProdId)]}
 		
