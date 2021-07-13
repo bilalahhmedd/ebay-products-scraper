@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Sized
 import scrapy
 
 
@@ -9,22 +10,21 @@ class EbaySpider(scrapy.Spider):
 	start_urls = ["https://www.ebay.com"]
 
 	# Allow a custom parameter (-a flag in the scrapy command)
-	def __init__(self, search="nintendo switch console",pages=1):
+	def __init__(self, search="Nike",start_page=1,pages=5,size='s'):
 		self.search_string = search
-		self.pages = int(pages)+1
-
+		self.pages=int(pages)
+		self.size=size
+		self.start_page=int(start_page)
 	def parse(self, response):
 		# Extrach the trksid to build a search request	
 		trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()[0]       
-
+		pages=self.pages+1
 		# Build the url and start the requests
-		for x in range(1,self.pages):
+		for x in range(self.start_page,self.pages+1):
+
 			yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40&_trksid=" + trksid +
 								"&_nkw=" + self.search_string.replace(' ','+') + "&_ipg=200&_pgn="+str(x), 
 								callback=self.parse_link)
-		
-
-		#yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40&_trksid=" + trksid +"&_nkw=" + self.search_string.replace(' ','+') + "&_ipg=200", callback=self.parse_link)
 
 	# Parse the search results
 	def parse_link(self, response):
@@ -64,8 +64,8 @@ class EbaySpider(scrapy.Spider):
 			summary_data = {
 							"Name":name,
 							"Status":status,
-							#"Seller_Level":seller_level,
-							#"Location":location,
+							"Seller_Level":seller_level,
+							"Location":location,
 							"Price":price,
 							"Stars":stars,
 							"Ratings":ratings,
@@ -77,6 +77,7 @@ class EbaySpider(scrapy.Spider):
 			yield scrapy.Request(product_url, meta=data, callback=self.parse_product_details)
 
 		# Get the next page
+		'''
 		next_page_url = response.xpath('//*/a[@class="x-pagination__control"][2]/@href').extract_first()
 
 		# The last page do not have a valid url and ends with '#'
@@ -86,6 +87,7 @@ class EbaySpider(scrapy.Spider):
 			print('\n'+'-'*30)
 			print('Next page: {}'.format(next_page_url))
 			yield scrapy.Request(next_page_url, callback=self.parse_link)
+		'''
 
 
 	# Parse details page for each product
@@ -99,20 +101,31 @@ class EbaySpider(scrapy.Spider):
 		links=response.xpath("//img/@src")
 		html=""
 		linklist=[]
+		#set size of images
+		img_size='s-l500'
+		if self.size =='m':
+			img_size='s-l1000'
+		elif self.size=='l':
+			img_size='s-l2000'
+
+
 		for link in links:
 			url=link.get()
 			if any(extension in url for extension in [".jpg"]):
 				if "s-l64" in url:
-					url=url.replace("s-l64","s-l500")
+					url=url.replace("s-l64",img_size)
 					if url not in linklist:
 						linklist.append(url)
-		
-		
-		# aspects of product to be scraped
+
+
+
+
+
+		# spects
 		allspect=response.xpath('//div[@class="itemAttr"]/div/table/tr')
 		for spect in allspect:
 			row=spect.xpath('.//td') 
-			if(len(row)==4 or len(row)==2):
+			if(len(row)==4 ):
 
 				try:
 					
@@ -126,74 +139,88 @@ class EbaySpider(scrapy.Spider):
 					val1 = value1.split()
 					data[name]=" ".join(val)
 					data[name1]=" ".join(val1)
-					print('Data appendeded')
 					# print(name) 
 					# print(val) 
 					# print(name1) 
 					# print(val1) 
 				except:
-					pass
-				'''
+
 					try:
-						
 						name=spect.xpath('.//td/text()')[0].extract() 
 						name=name.strip()             
-						value=spect.xpath('.//td/span/span/text()')[0].extract() 
-						val = value.split()
-						data[name]=" ".join(val)
-						print('Data appendeded')
-					except:
-						pass
-					try:
-						
-						name=spect.xpath('.//td/text()')[2].extract() 
-						name=name.strip()             
-						value=spect.xpath('.//td/span/span/text()')[1].extract() 
-						val = value.split()
-						data[name]=" ".join(val)
-						print('Data appendeded')
-					except:
-						pass
-					
-					try:
-						
-						name=spect.xpath('.//td/text()')[0].extract() 
-						name=name.strip()             
-						value=spect.xpath('.//td/span/text()')[0].extract() 
+						value=spect.xpath('.//td/div/span/text()')[0].extract() 
 						val = value.split() 
-						data[name]=" ".join(val)
-						print('Data appendeded')
-					except:
-						pass
-					try:
-						
-						name1=spect.xpath('.//td/text()')[2].extract() 
+						value1=spect.xpath('.//td/span/text()')[0].extract() 
+						val1 = value1.split() 
+
+
+						nn=spect.xpath('//td[@class="attrLabels"]/text()').extract()  
+
+						name1=nn[1] 
 						name1=name1.strip() 
-						value1=spect.xpath('.//td/span/text()')[1].extract() 
-						val1 = value1.split()
+						
+						data[name]=" ".join(val)
 						data[name1]=" ".join(val1)
-						print('Data appendeded')
 					except:
-						pass
-					'''
-		# fetch id from url and pass as directory id
-		url = data['URL']
-		ProdId = url.split('itm/')[1].lstrip().split('?')[0]
-		data['prod_id']=ProdId
-		# changing data pipe line a bit
-		# it will append data into data 
-		data['images_url']=linklist
-		'''
-		for image_url in linklist:
-			data['images_url'].append(image_url)
-		# yield as dictionery
-		'''
-		#yield {'data':data}
-		yield data
-		
-		
+							pass 
+						
+
+						
+
+
+
+
+
+
+
+					
+
+					 
+				# print("++++++++++++++++++++")
+
+
+
+
+				# name=spect.xpath('.//td/text()')[2].extract()
+				# name=name.strip()
+				# value=spect.xpath('.//td/text()')[3].extract()
+				# val = value.split()
+				
+				# data[name]=" ".join(val)
+
+
+	 
+    
+		# for li in all.xpath('//div[@class="spec-row"]/ul/li'):
+		# 	n=li.xpath('//div[@class="s-name"]/text()').get()
+		# 	v=li.xpath('//div[@class="s-value"]/text()').get()
+		# 	data[n]=v
 		
 
+
+		url = data['URL']
+		DirId = url.split('itm/')[1].lstrip().split('?')[0]
+		data['prod_id']=DirId
+		data['images_url']=linklist
+		yield data
+		#yield {'data':data,'images':[linklist,str(DirId)]}
+
+		# yield data
+		# for l in linklist:
+		# 	i=i+1
+			
+		# 	yield{
+        #          'Image Url': l,
+        #          'File number': i,
+        #          'Dir name': str(DirId),
+		# 		 'data':data
+				 
+
+        #         # 'image_urls':linklist
+        #     }
+		
+		
+		
 
 
 
