@@ -11,7 +11,9 @@ from scrapy.pipelines.images import ImagesPipeline
 from scrapy.http.request import Request
 
 
-class customImagePipeline(ImagesPipeline):
+class customImagePipeline(ImagesPipeline):  
+    prod_ids = []
+
     def get_media_requests(self, item, info):
         data = item #item.get('data')
         
@@ -31,6 +33,7 @@ class customImagePipeline(ImagesPipeline):
             # meta={'dir': item.get('Dir namenumber')}
             
         )
+        
     
     def file_path(self, request, response=None, info=None):
         file_name = request.meta.get('File_number')
