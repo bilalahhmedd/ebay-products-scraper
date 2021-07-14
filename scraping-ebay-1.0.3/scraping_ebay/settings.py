@@ -94,3 +94,7 @@ CONCURRENT_REQUESTS = 3
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
+FEED_EXPORTERS = {
+    'csv': 'scraping_ebay.exporters.HeadlessCsvItemExporter',
+}
+
