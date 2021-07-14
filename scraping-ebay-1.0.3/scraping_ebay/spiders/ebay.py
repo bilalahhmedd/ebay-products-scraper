@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 from typing import Sized
 import scrapy
-
+import pandas as pd
 
 class EbaySpider(scrapy.Spider):
 	
 	name = "ebay"
+	#allowed_domains = ["ebay.com","ebay.co.uk"]
 	allowed_domains = ["ebay.com"]
-	start_urls = ["https://www.ebay.com"]
-	
+	start_urls = ["https://www.ebay.com","https://www.ebay.co.uk"]
+	#start_urls = ["https://www.ebay.co.uk"]
 	# Allow a custom parameter (-a flag in the scrapy command)
 	def __init__(self, search="Tshirt,laced",pages=4,size='s'):
 		# so first of all split serch based on comma
 		self.search_list = search.split(',')
 		self.pages=int(pages)
 		self.size=size
-		self.prod_urls_tracker = []
+		# read universal prod_ids and pass to tracker
+		self.prod_urls_tracker = self.read_univeral_prod_ids()
 	def parse(self, response):
 		# Extrach the trksid to build a search request	
 		trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()[0]       
@@ -34,6 +36,11 @@ class EbaySpider(scrapy.Spider):
 		results = response.xpath('//div/div/ul/li[contains(@class, "s-item" )]')
 
 		# Extract info for each product
+		'''
+		Will be writing prod_ids to universal list page by page
+		'''
+		
+		prod_ids_page =[]
 		for product in results:		
 			'''
 			First check if product url is not allready scrapped
@@ -41,7 +48,9 @@ class EbaySpider(scrapy.Spider):
 			product_url = product.xpath('.//a[@class="s-item__link"]/@href').extract_first()
 			prod_id=product_url.split('itm/')[1].lstrip().split('?')[0]
 			if prod_id not in self.prod_urls_tracker:
+				# append prod_id to prod_urls_trakcer for local session
 				self.prod_urls_tracker.append(prod_id)
+				prod_ids_page.append(prod_id)
 				name = product.xpath('.//*[@class="s-item__title"]//text()').extract_first()
 				# Sponsored or New Listing links have a different class
 				if name == None:
@@ -87,6 +96,8 @@ class EbaySpider(scrapy.Spider):
 				
 			else:
 				return 
+		# now append prod_ids of this page to universal list
+		pd.DataFrame({'prod-id':prod_ids_page}).to_csv('universal-prod-ids.csv',mode='a',header=False)
 
 
 
@@ -166,8 +177,42 @@ class EbaySpider(scrapy.Spider):
 						data[name]=" ".join(val)
 						data[name1]=" ".join(val1)
 					except:
-							pass 
-		
+						try:
+							name=spect.xpath('.//td/text()')[0].extract() 
+							name=name.strip()             
+								
+							name1=spect.xpath('.//td/text()')[2].extract() 
+							name1=name1.strip() 
+							value1=spect.xpath('.//td/span/text()')[0].extract() 
+							val1 = value1.split() 
+							vl=spect.xpath('.//td')[1] 
+							val=vl.xpath('.//span/span/text()')[0].extract() 
+							val=val.split()
+							data[name]=" ".join(val)
+							data[name1]=" ".join(val1)
+							# print(name) 
+							# print(val) 
+							# print(name1) 
+							# print(val1) 
+						except:
+							try: 
+								name=spect.xpath('.//td/text()')[0].extract() 
+								name=name.strip()             
+								name1=spect.xpath('.//td/text()')[2].extract() 
+								name1=name1.strip() 
+								value=spect.xpath('.//td/span/text()')[0].extract() 
+								val = value.split() 
+								vl=spect.xpath('.//td')[3] 
+								val1=vl.xpath('.//span/span/text()')[0].extract() 
+								val1=val1.split() 
+								data[name]=" ".join(val)
+								data[name1]=" ".join(val1)
+								# print(name) 
+								# print(val) 
+								# print(name1) 
+								# print(val1) 
+							except: 
+								pass 
 
 		# append dir_id and images_url to data table		
 		url = data['URL']
@@ -175,7 +220,14 @@ class EbaySpider(scrapy.Spider):
 		data['prod_id']=DirId
 		data['images_url']=linklist
 		yield data
-		
+	def read_univeral_prod_ids(self):
+		try:
+			return list(pd.read_csv('universal-prod-ids.csv')['prod-id'])
+		except FileNotFoundError:
+			print('creating file universal-prod-ids.csv')
+			# create new csv file
+			pd.DataFrame(columns=['prod-id']).to_csv('universal-prod-ids.csv')
+			return List(pd.read_csv('universal-prod-ids.csv')['prod-id'])
 		
 		
 		
