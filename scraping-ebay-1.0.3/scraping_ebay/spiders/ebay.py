@@ -227,7 +227,7 @@ class EbaySpider(scrapy.Spider):
 			print('creating file universal-prod-ids.csv')
 			# create new csv file
 			pd.DataFrame(columns=['prod-id']).to_csv('universal-prod-ids.csv')
-			return List(pd.read_csv('universal-prod-ids.csv')['prod-id'])
+			return list(pd.read_csv('universal-prod-ids.csv')['prod-id'])
 		
 		
 		
