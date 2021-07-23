@@ -27,7 +27,7 @@ class EbaySpider(scrapy.Spider):
 			print('processing string: ',search_string)
 			for x in range(1,self.pages+1):
 				yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40&_trksid=" + trksid +
-									"&_nkw=" + search_string.replace(' ','+') + "&_ipg=200&_pgn="+str(x), 
+									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
 									callback=self.parse_link)
 
 	# Parse the search results
