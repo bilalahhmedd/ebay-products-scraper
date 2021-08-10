@@ -2,7 +2,8 @@
 from typing import Sized
 import scrapy
 import pandas as pd
-
+import os
+#from local_utils import get_universal_ids
 class EbaySpider(scrapy.Spider):
 	
 	name = "ebay"
@@ -17,7 +18,8 @@ class EbaySpider(scrapy.Spider):
 		self.pages=int(pages)
 		self.size=size
 		# read universal prod_ids and pass to tracker
-		self.prod_urls_tracker = self.read_univeral_prod_ids()
+		self.prod_urls_tracker = self.get_universal_ids()#self.read_univeral_prod_ids()
+		print('total universal ids: ',len(self.prod_urls_tracker))
 	def parse(self, response):
 		# Extrach the trksid to build a search request	
 		trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()[0]       
@@ -47,7 +49,8 @@ class EbaySpider(scrapy.Spider):
 			'''
 			product_url = product.xpath('.//a[@class="s-item__link"]/@href').extract_first()
 			prod_id=product_url.split('itm/')[1].lstrip().split('?')[0]
-			if prod_id not in self.prod_urls_tracker:
+			#prod_id = prod_id.replace(' ','')
+			if int(prod_id) not in self.prod_urls_tracker:
 				# append prod_id to prod_urls_trakcer for local session
 				self.prod_urls_tracker.append(prod_id)
 				prod_ids_page.append(prod_id)
@@ -95,9 +98,10 @@ class EbaySpider(scrapy.Spider):
 				yield scrapy.Request(product_url, meta=data, callback=self.parse_product_details)
 				
 			else:
-				return 
+				print('skipping: ',prod_id)
+				continue 
 		# now append prod_ids of this page to universal list
-		pd.DataFrame({'prod-id':prod_ids_page}).to_csv('universal-prod-ids.csv',mode='a',header=False)
+		#pd.DataFrame({'prod-id':prod_ids_page}).to_csv('universal-prod-ids.csv',mode='a',header=False)
 
 
 
@@ -229,9 +233,25 @@ class EbaySpider(scrapy.Spider):
 			pd.DataFrame(columns=['prod-id']).to_csv('universal-prod-ids.csv')
 			return list(pd.read_csv('universal-prod-ids.csv')['prod-id'])
 		
-		
-		
+	def get_universal_ids(self):
 
+		ids =[]
+		all_csvs=[]
+		for root, directories, files in os.walk("./", topdown=False):
+			for name in files:
+				f=(os.path.join(root, name))
+				if f.endswith((".csv")):
+					all_csvs.append(f)
+		# iterate thorugh each csv file and build list of universal keys out of it
+		for csv_file in all_csvs:
+			
+			df=pd.read_csv(csv_file)
+			for id in list(df['prod_id']):
+					ids.append(int(id))
+
+
+		return ids	
+		
 
 
 
