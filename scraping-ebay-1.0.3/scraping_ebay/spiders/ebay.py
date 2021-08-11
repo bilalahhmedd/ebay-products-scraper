@@ -237,7 +237,7 @@ class EbaySpider(scrapy.Spider):
 
 		ids =[]
 		all_csvs=[]
-		for root, directories, files in os.walk("./", topdown=False):
+		for root, directories, files in os.walk("../", topdown=False):
 			for name in files:
 				f=(os.path.join(root, name))
 				if f.endswith((".csv")):
