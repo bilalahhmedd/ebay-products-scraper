@@ -244,7 +244,13 @@ class EbaySpider(scrapy.Spider):
 					all_csvs.append(f)
 		# iterate thorugh each csv file and build list of universal keys out of it
 		for csv_file in all_csvs:
-			
+			try:
+				df=pd.read_csv(csv_file)
+				for id in list(df['prod_id']):
+						ids.append(int(id))
+			except:
+				print(csv_file,' is empty')
+				pass
 			df=pd.read_csv(csv_file)
 			for id in list(df['prod_id']):
 					ids.append(int(id))
