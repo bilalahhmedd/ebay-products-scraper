@@ -251,9 +251,9 @@ class EbaySpider(scrapy.Spider):
 			except:
 				print(csv_file,' is empty')
 				pass
-			df=pd.read_csv(csv_file)
-			for id in list(df['prod_id']):
-					ids.append(int(id))
+			#df=pd.read_csv(csv_file)
+			#for id in list(df['prod_id']):
+			#		ids.append(int(id))
 
 
 		return ids	
