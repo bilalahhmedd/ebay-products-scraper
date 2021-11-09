@@ -6,7 +6,7 @@ import os
 #from local_utils import get_universal_ids
 class EbaySpider(scrapy.Spider):
 	
-	name = "ebay"
+	name = "ebay_old"
 	#allowed_domains = ["ebay.com","ebay.co.uk"]
 	allowed_domains = ["ebay.com"]
 	start_urls = ["https://www.ebay.com","https://www.ebay.co.uk"]
