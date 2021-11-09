@@ -18,12 +18,12 @@ pip install -r requirements.txt
 
 # Running Scraper
 
-cd to scrapy=ebay-1.0.2 folder using shell and run following command
+cd to scrapy=ebay-1.0.3 folder using shell and run following command
 
 scrapy crawl ebay -o output.csv -a search='your search query'
 
 It will generate local folder inside directory and also create output.csv file.
-Local folder contains images folder.
+Local folder contains images folder and item-specs-jsons containing one json file per product id.
 Image folder contains multiple folders named after product posts ids.
 
 # To increase number of scraped results
