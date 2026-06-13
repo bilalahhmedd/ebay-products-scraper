@@ -1,4 +1,4 @@
+
 scrapy
 pandas
-json
 numpy
