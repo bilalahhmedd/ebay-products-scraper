@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#project root local folders
+./logs
+./output.*
+*.csv
+
