@@ -6,16 +6,33 @@ import os
 import json
 #from local_utils import get_universal_ids
 class EbaySpider(scrapy.Spider):
-	
-	name = "ebay"
-	#allowed_domains = ["ebay.com","ebay.co.uk"]
-	allowed_domains = ["ebay.com"]
+	"""_summary_ <-- this spider scrapes products listing data (csv,images folder). based on search query and number of pages, it scrapes web pages of allowed domain (ebay.com, ebay.uk)
+					it also avoids duplication by maintaining history of product ids.
+
+	Args:
+		scrapy (_Spider_): _Spider class_
+		name	(text): name of spider
+		allowed_domains (list): only scrap mentioned domains
+		start_urls (list): set of urls to initial request
+
+	Yields:
+		folder of csv: files containing product details, attributes data of corresponding products ids
+		folder of images: folders containing images of corresponding products ids 
+	"""
+	name = "ebay_spider_01"
+	allowed_domains = ["ebay.com"] # "ebay.co.uk"
 	start_urls = ["https://www.ebay.com","https://www.ebay.co.uk"]
-	#start_urls = ["https://www.ebay.co.uk"]
-	# Allow a custom parameter (-a flag in the scrapy command)
-	def __init__(self, search="Tshirt,laced",pages=4,size='s'):
+
+	def __init__(self, search_query="Tshirt,laced",pages=4,size='s'):
+		"""_summary_
+
+		Args:
+			search_query (str, optional): set of product names to be scraped "Tshirt,laced".
+			pages (int, optional): number of pages for each product to be scraped
+			size (str, optional): size (s,m,l) of images for each product to be scraped
+		"""
 		# so first of all split serch based on comma
-		self.search_list = search.split(',')
+		self.search_list = search_query.split(',')
 		self.pages=int(pages)
 		self.size=size
 		# read universal prod_ids and pass to tracker
@@ -30,11 +47,20 @@ class EbaySpider(scrapy.Spider):
 			print('processing string: ',search_string)
 			for x in range(1,self.pages+1):
 				yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40&_trksid=" + trksid +
-									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
+									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=240&_pgn="+str(x)+"&LH_ItemCondition=4", 
+#									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
 									callback=self.parse_link)
 
 	# Parse the search results
 	def parse_link(self, response):
+		"""_summary_
+
+		Args:
+			response (_text_): html data coming from webpage
+
+		Yields:
+			_type_: list of product links, meta data of each product, 
+		"""
 		# Extract the list of products 
 		results = response.xpath('//div/div/ul/li[contains(@class, "s-item" )]')
 
@@ -231,6 +257,14 @@ class EbaySpider(scrapy.Spider):
 
 
 	def parse_product_details_v1(self, response):
+		"""_summary_ parses attributes data of each product 
+
+		Args:
+			response (_text_): product url
+
+		Yields:
+			_dict_: product attributes and metadata
+		"""
 		if not os.path.exists('local/item-specs-jsons'):
 			os.makedirs('local/item-specs-jsons')
 
@@ -274,8 +308,23 @@ class EbaySpider(scrapy.Spider):
 				for i in range(0,len(labels)): 
 					name=(labels[i].xpath('.//*/text()').extract_first()) 
 					val=(values[i].xpath('.//*/text()').extract_first())
-					spects[name]=val
-					# data[name]=val
+
+		# try:
+		# 	spects["EbayItemNumber"] = response.xpath("//div[@id='descItemNumber']/text()").extract_first()
+		# except:
+		# 	pass
+
+		# spectdiv=response.xpath('//div[@class="vim x-about-this-item"]')[0]
+		# allrows=spectdiv.xpath(".//div[@class='ux-layout-section__row']") 
+		# for row in allrows:
+		# 	labels=row.xpath(".//div[@class='ux-labels-values__labels']")  
+		# 	values=row.xpath(".//div[@class='ux-labels-values__values']")  
+		# 	if (len(labels)==len(values)):
+		# 		for i in range(0,len(labels)):  
+		# 			name=(labels[i].xpath('.//*/text()').extract_first()) 
+		# 			val=(values[i].xpath('.//*/text()').extract_first()) 					
+		# 			spects[name]=val
+		# 			# data[name]=val
 		
 		
 
