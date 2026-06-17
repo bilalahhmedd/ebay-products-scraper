@@ -132,6 +132,6 @@ dmypy.json
 ./logs
 ./output.*
 *.csv
-./worshop*
+./worshop/*
 ./scraping-ebay-1.0.3/local
 
