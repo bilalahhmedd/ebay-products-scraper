@@ -129,9 +129,9 @@ dmypy.json
 .pyre/
 
 #project root local folders
-./logs
+./scraping-ebay-1.0.3/logs
 ./output.*
 *.csv
-./worshop/*
+./scraping-ebay-1.0.3/worshop/*
 ./scraping-ebay-1.0.3/local
 
