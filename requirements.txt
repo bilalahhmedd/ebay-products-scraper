@@ -1,4 +1,6 @@
 
+beautifulsoup4
+requests
 scrapy
 pandas
 numpy
