@@ -135,4 +135,5 @@ dmypy.json
 ./worshop*
 ./scraping-ebay-1.0.3/local
 ./practice/*
+./data/*
 
