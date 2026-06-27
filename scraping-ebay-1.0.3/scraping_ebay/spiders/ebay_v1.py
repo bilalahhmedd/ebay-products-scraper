@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Sized
+from urllib import response
 import scrapy
 import pandas as pd
 import os
@@ -31,6 +32,10 @@ class EbaySpider(scrapy.Spider):
 			pages (int, optional): number of pages for each product to be scraped
 			size (str, optional): size (s,m,l) of images for each product to be scraped
 		"""
+		DEFAULT_REQUEST_HEADERS = {
+			"Accept-Language": "en-US,en;q=0.9",
+			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+		}
 		# so first of all split serch based on comma
 		self.search_list = search_query.split(',')
 		self.pages=int(pages)
@@ -40,13 +45,36 @@ class EbaySpider(scrapy.Spider):
 		print('total universal ids: ',len(self.prod_urls_tracker))
 	def parse(self, response):
 		# Extrach the trksid to build a search request	
-		trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()[0]       
+		# trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()[0]
+		trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()
+		# trksid = response.css(
+    	# 			"input[type='hidden'][name='_trksid']::attr(value)"
+		# 			).get()
+		# trksid = response.css(
+		# 				"input[type='hidden'][name='_trksid']"
+		# 			).xpath("@value").extract_first()
+		# trksid = response.xpath(
+		# 				"//input[@type='hidden' and @name='_trksid']/@value"
+		# 			).extract_first()
+		# log response url and title to debug
+		self.logger.info("Response URL: %s", response.url)
+		self.logger.info("Page title: %s", response.css("title::text").extract_first())
+		# write response body to debug file
+		# with open("../logs/ebay_debug.html", "wb") as f:
+		# 				f.write(response.body)
+
+		print('trksid: ',trksid)       
 		pages=self.pages+1
+		print('total pages to scrap: ',pages)
 		# Build the url and start the requests
 		for search_string in self.search_list:
 			print('processing string: ',search_string)
 			for x in range(1,self.pages+1):
-				yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40&_trksid=" + trksid +
+# 				yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40&_trksid=" + trksid +
+# 									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=240&_pgn="+str(x)+"&LH_ItemCondition=4", 
+# #									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
+# 									callback=self.parse_link)
+				yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40" +
 									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=240&_pgn="+str(x)+"&LH_ItemCondition=4", 
 #									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
 									callback=self.parse_link)
@@ -362,7 +390,8 @@ class EbaySpider(scrapy.Spider):
 
 		ids =[]
 		all_csvs=[]
-		for root, directories, files in os.walk("../../", topdown=False):
+		# for root, directories, files in os.walk("../../", topdown=False):
+		for root, directories, files in os.walk("./", topdown=False):
 			for name in files:
 				f=(os.path.join(root, name))
 				if f.endswith((".csv")):
