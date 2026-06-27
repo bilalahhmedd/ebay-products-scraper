@@ -9,19 +9,28 @@
 #     https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
+from multiprocessing.util import INFO
+
+
 BOT_NAME = 'scraping_ebay'
 
 SPIDER_MODULES = ['scraping_ebay.spiders']
 NEWSPIDER_MODULE = 'scraping_ebay.spiders'
 
 #ITEM_PIPELINES = {'scraping_ebay.pipelines.myImagePipeline': 2}
-ITEM_PIPELINES = {'scraping_ebay.pipelines.customImagePipeline': 1}
+# ITEM_PIPELINES = {'scraping_ebay.pipelines.customImagePipeline': 1}
+ITEM_PIPELINES = {'scraping_ebay.pipelines.EbayProductImagePipeline': 1}
 #ITEM_PIPELINES = {'scraping_ebay.pipelines.ScrapingEbayPipeline': 1}
 #ITEM_PIPELINES = {'scraping_ebay.pipelines.customImagePipeline': 2}
 IMAGES_STORE = 'local'
 FILES_STORE = 'files'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'scraping_ebay (+http://www.yourdomain.com)'
+USER_AGENT = (
+    'Mozilla/5.0 (X11; Linux x86_64) '
+    'AppleWebKit/537.36 (KHTML, like Gecko) '
+    'Chrome/126.0.0.0 Safari/537.36'
+)
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
@@ -33,7 +42,7 @@ CONCURRENT_REQUESTS = 3
 # Configure a delay for requests for the same website (default: 0)
 # See https://doc.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-#DOWNLOAD_DELAY = 3
+DOWNLOAD_DELAY = 1
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
@@ -42,13 +51,22 @@ CONCURRENT_REQUESTS = 3
 #COOKIES_ENABLED = False
 
 # Disable Telnet Console (enabled by default)
-#TELNETCONSOLE_ENABLED = False
+TELNETCONSOLE_ENABLED = False
 
 # Override the default request headers:
 #DEFAULT_REQUEST_HEADERS = {
 #   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 #   'Accept-Language': 'en',
 #}
+DEFAULT_REQUEST_HEADERS = {
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+    # 'Accept-Encoding': 'gzip, deflate, br',
+    # 'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+}
 
 # Enable or disable spider middlewares
 # See https://doc.scrapy.org/en/latest/topics/spider-middleware.html
@@ -97,4 +115,4 @@ CONCURRENT_REQUESTS = 3
 FEED_EXPORTERS = {
     'csv': 'scraping_ebay.exporters.HeadlessCsvItemExporter',
 }
-
+# "LOG_LEVEL"== "INFO"
