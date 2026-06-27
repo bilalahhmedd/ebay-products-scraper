@@ -6,8 +6,10 @@ from urllib.parse import urlencode, urlparse
 
 class EbayProductsSpider(scrapy.Spider):
     name = "ebay-products"
-    allowed_domains = ["ebay.com"]
+    allowed_domains = ["ebay.com","ebayimg.com"]
     start_urls = ["https://ebay.com"]
+    handle_httpstatus_list = [403]
+
 
     def __init__(self, search_query="laptop", pages=1, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -117,7 +119,7 @@ class EbayProductsSpider(scrapy.Spider):
                 "seller": self.first_value(card, [".s-item__seller-info-text::text"])
                 or self.extract_seller(lines),
                 "item_url": item_url,
-                "image_url": image_url,
+                "image_url": self.get_low_res(image_url),
                 "image_path": self.image_path(product_id, image_url),
             }
     def first_value(self, selector, css_selectors):
@@ -177,8 +179,12 @@ class EbayProductsSpider(scrapy.Spider):
     def extension_from_url(self,url):
         suffix = Path(urlparse(url).path).suffix.lower()
         if suffix in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
-            return suffix
+            return ".jpg"   #suffix
         return ".jpg"
+    
+    def get_low_res(self,url):
+        url = re.sub(r"s-l\d+\.(webp|jpg|png)$", "s-l500.jpg", url)
+        return url
 
     @staticmethod
     def clean(value):
