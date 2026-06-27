@@ -48,7 +48,7 @@ class EbayProductImagePipeline(FilesPipeline):
     def extension_from_url(url):
         suffix = Path(urlparse(url).path).suffix.lower()
         if suffix in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
-            return suffix
+            return ".jpg"#suffix
         return ".jpg"
 
 
