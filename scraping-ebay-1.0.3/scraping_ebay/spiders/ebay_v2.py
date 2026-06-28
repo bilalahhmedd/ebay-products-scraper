@@ -348,10 +348,6 @@ class EbaySpider(scrapy.Spider):
 					if url not in linklist:
 						linklist.append(url)
 
-
-
-
-
 		# spects
 		spects={}
 		spectdiv=response.xpath('//div[@class="ux-layout-section-module"]')[0] 
@@ -364,26 +360,7 @@ class EbaySpider(scrapy.Spider):
 					name=(labels[i].xpath('.//*/text()').extract_first()) 
 					val=(values[i].xpath('.//*/text()').extract_first())
 
-		# try:
-		# 	spects["EbayItemNumber"] = response.xpath("//div[@id='descItemNumber']/text()").extract_first()
-		# except:
-		# 	pass
-
-		# spectdiv=response.xpath('//div[@class="vim x-about-this-item"]')[0]
-		# allrows=spectdiv.xpath(".//div[@class='ux-layout-section__row']") 
-		# for row in allrows:
-		# 	labels=row.xpath(".//div[@class='ux-labels-values__labels']")  
-		# 	values=row.xpath(".//div[@class='ux-labels-values__values']")  
-		# 	if (len(labels)==len(values)):
-		# 		for i in range(0,len(labels)):  
-		# 			name=(labels[i].xpath('.//*/text()').extract_first()) 
-		# 			val=(values[i].xpath('.//*/text()').extract_first()) 					
-		# 			spects[name]=val
-		# 			# data[name]=val
 		
-		
-
-
 
 		# append dir_id and images_url to data table		
 		url = data['Product_URL']
