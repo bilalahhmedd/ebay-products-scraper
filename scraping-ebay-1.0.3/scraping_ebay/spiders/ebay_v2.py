@@ -21,7 +21,7 @@ class EbaySpider(scrapy.Spider):
 		folder of images: folders containing images of corresponding products ids 
 	"""
 	name = "ebay_spider_02"
-	allowed_domains = ["ebay.com"] # "ebay.co.uk"
+	allowed_domains = ["ebay.com","ebayimg.com"] # "ebay.co.uk"
 	start_urls = ["https://www.ebay.com","https://www.ebay.co.uk"]
 
 	def __init__(self, search_query="Tshirt,laced",pages=4,size='s'):
@@ -32,36 +32,30 @@ class EbaySpider(scrapy.Spider):
 			pages (int, optional): number of pages for each product to be scraped
 			size (str, optional): size (s,m,l) of images for each product to be scraped
 		"""
-		DEFAULT_REQUEST_HEADERS = {
-			"Accept-Language": "en-US,en;q=0.9",
-			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-		}
 		# so first of all split serch based on comma
 		self.search_list = search_query.split(',')
-		self.pages=int(pages)
+		self.pages=max(1,int(pages))
 		self.size=size
 		# read universal prod_ids and pass to tracker
 		self.prod_urls_tracker = self.get_universal_ids()#self.read_univeral_prod_ids()
 		print('total universal ids: ',len(self.prod_urls_tracker))
+	
+	async def start(self):
+		yield self.homepage_request()
+	
+	def homepage_request(self):
+		return scrapy.Request(
+			"https://www.ebay.com/",
+			callback=self.parse
+			# dont_filter=True,
+		)
+
 	def parse(self, response):
 		# Extrach the trksid to build a search request	
 		# trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()[0]
 		trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()
-		# trksid = response.css(
-    	# 			"input[type='hidden'][name='_trksid']::attr(value)"
-		# 			).get()
-		# trksid = response.css(
-		# 				"input[type='hidden'][name='_trksid']"
-		# 			).xpath("@value").extract_first()
-		# trksid = response.xpath(
-		# 				"//input[@type='hidden' and @name='_trksid']/@value"
-		# 			).extract_first()
-		# log response url and title to debug
 		self.logger.info("Response URL: %s", response.url)
 		self.logger.info("Page title: %s", response.css("title::text").extract_first())
-		# write response body to debug file
-		# with open("../logs/ebay_debug.html", "wb") as f:
-		# 				f.write(response.body)
 
 		print('trksid: ',trksid)       
 		pages=self.pages+1
@@ -89,7 +83,8 @@ class EbaySpider(scrapy.Spider):
 		Yields:
 			_type_: list of product links, meta data of each product, 
 		"""
-		# Extract the list of products 
+		# Extract the list of products
+		print('parsing page: ',response.url) 
 		results = response.xpath('//div/div/ul/li[contains(@class, "s-item" )]')
 
 		# Extract info for each product
