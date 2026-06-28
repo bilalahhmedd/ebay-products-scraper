@@ -71,7 +71,7 @@ class EbaySpider(scrapy.Spider):
 # #									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
 # 									callback=self.parse_link)
 				yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40" +
-									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=60&_pgn="+str(x)+"&LH_ItemCondition=4", 
+									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=10&_pgn="+str(x)+"&LH_ItemCondition=4", 
 #									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
 									callback=self.parse_link)
 
@@ -153,7 +153,7 @@ class EbaySpider(scrapy.Spider):
 		'''
 		
 		prod_ids_page =[]
-		product = results[9]
+		# product = results[1]
 
 		# print("=" * 100)
 		# print(product.get())
@@ -192,7 +192,8 @@ class EbaySpider(scrapy.Spider):
 			product_url = product.css("a.s-card__link::attr(href)").get()
 			print("Product URL:", product_url)
 			product_id = match = re.search(r"/itm/(\d+)", product_url)
-			print("Product ID:", product_id.group(1) if product_id else None)
+			product_id = product_id.group(1) if product_id else None
+			print("Product ID:", product_id)
 			title = product.css(".s-card__title > span:first-child::text").get()
 			print("Product Name:", title)
 			status = product.css(
@@ -219,15 +220,18 @@ class EbaySpider(scrapy.Spider):
 			print("Product Image URL:", image_url)
 
 			summary_data = {
+							"Product_ID":product_id,
 							"Title":title,
 							"Status":status,
 							"Location":location,
 							"Price":price,
 							"Shipping":shipping,
-							"URL": product_url,
+							"Product_URL": product_url,
 							"Image_URL": image_url
-								}
-			
+								
+							}
+			data = {'summary_data': summary_data}
+			yield scrapy.Request(product_url, meta=data, callback=self.parse_product_details_v1)	
 
 		# for product in results:		
 		# 	'''
@@ -502,7 +506,7 @@ class EbaySpider(scrapy.Spider):
 
 
 		# append dir_id and images_url to data table		
-		url = data['URL']
+		url = data['Product_URL']
 		DirId = url.split('itm/')[1].lstrip().split('?')[0]
 		
 		# json.dump(spects, open("local/jsonspects/"+DirId+".json", 'wb'))
