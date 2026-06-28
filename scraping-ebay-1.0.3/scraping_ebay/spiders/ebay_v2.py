@@ -5,6 +5,8 @@ import scrapy
 import pandas as pd
 import os
 import json
+
+import re
 #from local_utils import get_universal_ids
 class EbaySpider(scrapy.Spider):
 	"""_summary_ <-- this spider scrapes products listing data (csv,images folder). based on search query and number of pages, it scrapes web pages of allowed domain (ebay.com, ebay.uk)
@@ -69,10 +71,33 @@ class EbaySpider(scrapy.Spider):
 # #									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
 # 									callback=self.parse_link)
 				yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40" +
-									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=240&_pgn="+str(x)+"&LH_ItemCondition=4", 
+									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=60&_pgn="+str(x)+"&LH_ItemCondition=4", 
 #									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
 									callback=self.parse_link)
 
+	def parse_search(self, response):
+
+		self.logger.info("Search URL: %s", response.url)
+
+		self.logger.info("Title: %s",
+						response.css("title::text").get())
+
+		products = response.css(".s-item")
+
+		self.logger.info("Products: %d", len(products))
+
+		with open("search.html", "wb") as f:
+			f.write(response.body)
+
+		for product in products:
+			self.logger.info(product.css(".s-item__title::text").get())
+
+			yield {
+				"title": product.css(".s-item__title::text").get()
+			}
+	
+	
+	
 	# Parse the search results
 	def parse_link(self, response):
 		"""_summary_
@@ -83,9 +108,44 @@ class EbaySpider(scrapy.Spider):
 		Yields:
 			_type_: list of product links, meta data of each product, 
 		"""
+		self.logger.info("URL: %s", response.url)
+		self.logger.info("Title: %s", response.css("title::text").get())
+
+		results = response.css("li.s-card")
+		print('total products found: ',len(results))
+		
+		
+		# print("li.s-item:", len(response.css("li.s-item")))
+		# print(".s-item:", len(response.css(".s-item")))
+		# print("ul.srp-results:", len(response.css("ul.srp-results")))
+		# print(".srp-results:", len(response.css(".srp-results")))
+		# print(".srp-river-results", len(response.css(".srp-river-results")))
+
+		# results = response.css("ul.srp-results").get()
+		# print(results[:3000])
+
+		# print("s-item" in response.text)
+		# print(response.text.count("s-item"))
+
+		# print("men shoes" in response.text)
+
+
+		# product = response.css("li.s-item").get()
+		# print(product[:1000])
+
+		# product = response.css(".s-item").get()
+		# print(product[:1000])
+
+		# with open("search.html", "wb") as f:
+		# 	f.write(response.body)
+
 		# Extract the list of products
-		print('parsing page: ',response.url) 
-		results = response.xpath('//div/div/ul/li[contains(@class, "s-item" )]')
+		# print('parsing page: ',response.url) 
+		# results = response.xpath('//div/div/ul/li[contains(@class, "s-item" )]')
+		# results = response.xpath('//li[contains(@class, "s-item" )]')
+		# results = response.css(".s-item")
+		# print('total products found: ',len(results))
+
 
 		# Extract info for each product
 		'''
@@ -93,64 +153,152 @@ class EbaySpider(scrapy.Spider):
 		'''
 		
 		prod_ids_page =[]
-		for product in results:		
-			'''
-			First check if product url is not allready scrapped
-			'''
-			product_url = product.xpath('.//a[@class="s-item__link"]/@href').extract_first()
-			prod_id=product_url.split('itm/')[1].lstrip().split('?')[0]
-			#prod_id = prod_id.replace(' ','')
-			if int(prod_id) not in self.prod_urls_tracker:
-				# append prod_id to prod_urls_trakcer for local session
-				self.prod_urls_tracker.append(prod_id)
-				prod_ids_page.append(prod_id)
-				name = product.xpath('.//*[@class="s-item__title"]//text()').extract_first()
-				# Sponsored or New Listing links have a different class
-				if name == None:
-					name = product.xpath('.//*[@class="s-item__title s-item__title--has-tags"]/text()').extract_first()			
-					if name == None:
-						name = product.xpath('.//*[@class="s-item__title s-item__title--has-tags"]//text()').extract_first()			
-				if name == 'New Listing':
-					name = product.xpath('.//*[@class="s-item__title"]//text()').extract()[1]
+		product = results[9]
 
-				# If this get a None result
-				if name == None:
-					name = "ERROR"
+		# print("=" * 100)
+		# print(product.get())
+		# print("=" * 100)
 
-				price = product.xpath('.//*[@class="s-item__price"]/text()').extract_first()
-				status = product.xpath('.//*[@class="SECONDARY_INFO"]/text()').extract_first()
-				seller_level = product.xpath('.//*[@class="s-item__etrs-text"]/text()').extract_first()
-				location = product.xpath('.//*[@class="s-item__location s-item__itemLocation"]/text()').extract_first()
-				
+		# product_url = product.css("a.s-card__link::attr(href)").get()
+		# print("Product URL:", product_url)
+		# product_id = match = re.search(r"/itm/(\d+)", product_url)
+		# print("Product ID:", product_id.group(1) if product_id else None)
+		# title = product.css(".s-card__title > span:first-child::text").get()
+		# print("Product Name:", title)
+		# status = product.css(
+		# 				".s-card__subtitle span:first-child::text"
+		# 			).get()
+		# print("Product Status:", status)
+		# price = product.css(".s-card__price::text").get()
+		# print("Product Price:", price)
+		# shipping = product.css(
+		# 				".s-card__attribute-row:nth-child(3) span::text"
+		# 			).get()
+		# print("Product Shipping:", shipping)
+		# location = product.css(
+		# 				".s-card__attribute-row:last-child span::text"
+		# 			).get()
+		# print("Product Location:", location)
+		# image_url = product.css(
+		# 				"img.s-card__image::attr(src)"
+		# 			).get()
+		# image_url = image_url.replace(
+		# 				"s-l140.webp",
+		# 				"s-l500.jpg"
+		# 			)
+		# print("Product Image URL:", image_url)
 
-				# Set default values
-				stars = 0
-				ratings = 0
+		for product in results:
+			product_url = product.css("a.s-card__link::attr(href)").get()
+			print("Product URL:", product_url)
+			product_id = match = re.search(r"/itm/(\d+)", product_url)
+			print("Product ID:", product_id.group(1) if product_id else None)
+			title = product.css(".s-card__title > span:first-child::text").get()
+			print("Product Name:", title)
+			status = product.css(
+							".s-card__subtitle span:first-child::text"
+						).get()
+			print("Product Status:", status)
+			price = product.css(".s-card__price::text").get()
+			print("Product Price:", price)
+			shipping = product.css(
+							".s-card__attribute-row:nth-child(3) span::text"
+						).get()
+			print("Product Shipping:", shipping)
+			location = product.css(
+							".s-card__attribute-row:last-child span::text"
+						).get()
+			print("Product Location:", location)
+			image_url = product.css(
+							"img.s-card__image::attr(src)"
+						).get()
+			image_url = image_url.replace(
+							"s-l140.webp",
+							"s-l500.jpg"
+						)
+			print("Product Image URL:", image_url)
 
-				stars_text = product.xpath('.//*[@class="clipped"]/text()').extract_first()
-				if stars_text: stars = stars_text[:3]
-				ratings_text = product.xpath('.//*[@aria-hidden="true"]/text()').extract_first()
-				if ratings_text: ratings = ratings_text.split(' ')[0]
-
-				summary_data = {
-								"Name":name,
-								"Status":status,
-								"Seller_Level":seller_level,
-								"Location":location,
-								"Price":price,
-								"Stars":stars,
-								"Ratings":ratings,
-								"URL": product_url
+			summary_data = {
+							"Title":title,
+							"Status":status,
+							"Location":location,
+							"Price":price,
+							"Shipping":shipping,
+							"URL": product_url,
+							"Image_URL": image_url
 								}
+			
 
-				# Go to the product details page
-				data = {'summary_data': summary_data}
-				yield scrapy.Request(product_url, meta=data, callback=self.parse_product_details_v1)
+		# for product in results:		
+		# 	'''
+		# 	First check if product url is not allready scrapped
+		# 	'''
+		# 	# product_url = product.xpath('.//a[@class="s-item__link"]/@href').extract_first()
+		# 	# prod_id=product_url.split('itm/')[1].lstrip().split('?')[0]
+		# 	product_url = product.css("a.s-card__link::attr(href)").get()
+
+		# 	if not product_url:
+		# 		continue
+
+		# 	match = re.search(r"/itm/(\d+)", product_url)
+		# 	if not match:
+		# 		self.logger.warning("Could not extract product ID from URL: %s", product_url)
+		# 		continue
+
+		# 	prod_id = match.group(1)
+
+		# 	#prod_id = prod_id.replace(' ','')
+		# 	if int(prod_id) not in self.prod_urls_tracker:
+		# 		# append prod_id to prod_urls_trakcer for local session
+		# 		self.prod_urls_tracker.append(prod_id)
+		# 		prod_ids_page.append(prod_id)
+		# 		name = product.xpath('.//*[@class="s-item__title"]//text()').extract_first()
+		# 		# Sponsored or New Listing links have a different class
+		# 		if name == None:
+		# 			name = product.xpath('.//*[@class="s-item__title s-item__title--has-tags"]/text()').extract_first()			
+		# 			if name == None:
+		# 				name = product.xpath('.//*[@class="s-item__title s-item__title--has-tags"]//text()').extract_first()			
+		# 		if name == 'New Listing':
+		# 			name = product.xpath('.//*[@class="s-item__title"]//text()').extract()[1]
+
+		# 		# If this get a None result
+		# 		if name == None:
+		# 			name = "ERROR"
+
+		# 		price = product.xpath('.//*[@class="s-item__price"]/text()').extract_first()
+		# 		status = product.xpath('.//*[@class="SECONDARY_INFO"]/text()').extract_first()
+		# 		seller_level = product.xpath('.//*[@class="s-item__etrs-text"]/text()').extract_first()
+		# 		location = product.xpath('.//*[@class="s-item__location s-item__itemLocation"]/text()').extract_first()
 				
-			else:
-				print('skipping: ',prod_id)
-				continue 
-		# now append prod_ids of this page to universal list
+
+		# 		# Set default values
+		# 		stars = 0
+		# 		ratings = 0
+
+		# 		stars_text = product.xpath('.//*[@class="clipped"]/text()').extract_first()
+		# 		if stars_text: stars = stars_text[:3]
+		# 		ratings_text = product.xpath('.//*[@aria-hidden="true"]/text()').extract_first()
+		# 		if ratings_text: ratings = ratings_text.split(' ')[0]
+
+		# 		summary_data = {
+		# 						"Name":name,
+		# 						"Status":status,
+		# 						"Seller_Level":seller_level,
+		# 						"Location":location,
+		# 						"Price":price,
+		# 						"Stars":stars,
+		# 						"Ratings":ratings,
+		# 						"URL": product_url
+		# 						}
+
+		# 		# Go to the product details page
+		# 		data = {'summary_data': summary_data}
+		# 		yield scrapy.Request(product_url, meta=data, callback=self.parse_product_details_v1)
+				
+		# 	else:
+		# 		print('skipping: ',prod_id)
+		# 		continue 
+		# # now append prod_ids of this page to universal list
 		#pd.DataFrame({'prod-id':prod_ids_page}).to_csv('universal-prod-ids.csv',mode='a',header=False)
 
 
