@@ -325,18 +325,39 @@ class EbaySpider(scrapy.Spider):
 		self.logger.info("Parsing product")
 		self.logger.info(response.css("title::text").get())
 
-		if not os.path.exists('local/item-specs-jsons'):
-			os.makedirs('local/item-specs-jsons')
+		# implement gallery images extraction
+
+		images = response.css("img")
+
+		self.logger.info(f"Total images: {len(images)}")
+
+		image_urls = []
+
+		gallery = response.css("div.ux-image-carousel img")
+		for img in gallery:
+
+			url = (
+				img.css("::attr(data-zoom-src)").get()
+				or img.css("::attr(src)").get()
+				or img.css("::attr(data-src)").get()
+			)
+
+			if not url:
+				continue
+
+			if "i.ebayimg.com" not in url:
+				continue
+
+			image_urls.append(url)
+
+		image_urls = list(dict.fromkeys(image_urls))
+		# self.logger.info("-" * 80)
+		# self.logger.info(f"Image URLs: {image_urls}")
 
 
 		# Get the summary data
 		data = response.meta['summary_data']
 
-		# Add more data from details page
-		data['UPC'] = response.xpath('//h2[@itemprop="gtin13"]/text()').extract_first()
-		links=response.xpath("//img/@src")
-		html=""
-		linklist=[]
 		#set size of images
 		img_size='s-l500'
 		if self.size =='m':
@@ -344,21 +365,12 @@ class EbaySpider(scrapy.Spider):
 		elif self.size=='l':
 			img_size='s-l2000'
 
-
-		for link in links:
-			url=link.get()
-			if any(extension in url for extension in [".jpg"]):
-				if "s-l64" in url:
-					url=url.replace("s-l64",img_size)
-					if url not in linklist:
-						linklist.append(url)
-
 		# Extract Item Specifics
 		section = response.css("div[data-testid='x-about-this-item']")
 
-		item_specs = self.extract_specs(section)
+		item_specifics = self.extract_specs(section)
 		
-		self.logger.info(item_specs)
+		# self.logger.info(item_specifics)
 
 		# append dir_id and images_url to data table		
 		url = data['Product_URL']
@@ -370,19 +382,25 @@ class EbaySpider(scrapy.Spider):
 		json_path = output_dir / f"{DirId}.json"
 		with open(json_path, "w", encoding="utf-8") as fp:
 			json.dump(
-				item_specs,
+				item_specifics,
 				fp,
 				indent=4,
 				ensure_ascii=False
 			)
+		data["Brand"] = item_specifics.get("Brand")
+		data["Department"] = item_specifics.get("Department")
+		data["Color"] = item_specifics.get("Color")
+		data["Size"] = (
+			item_specifics.get("US Shoe Size")
+			or item_specifics.get("Size")
+		)
+		data["UPC"] = item_specifics.get("UPC")
+		data["MPN"] = item_specifics.get("MPN")
+		data["Model"] = item_specifics.get("Model")
 
-		# json.dump(spects, open("local/jsonspects/"+DirId+".json", 'wb'))
-		# with open("local/item-specs-jsons/"+DirId+".json", 'w') as fp:
-		# 	json.dump(spects, fp)
-		
 		# data['prod_id']=DirId
-		# data['images_url']=linklist
-		# yield data
+		data['image_urls']=image_urls
+		yield data
 
 
 	def extract_specs(self, section):
