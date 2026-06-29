@@ -23,8 +23,8 @@ class EbaySpider(scrapy.Spider):
 		folder of images: folders containing images of corresponding products ids 
 	"""
 	name = "ebay_spider_02"
-	allowed_domains = ["ebay.com","ebayimg.com"] # "ebay.co.uk"
-	start_urls = ["https://www.ebay.com","https://www.ebay.co.uk"]
+	allowed_domains = ["ebay.com","ebayimg.com"]
+	start_urls = ["https://www.ebay.com"]
 
 	def __init__(self, search_query="Tshirt,laced",pages=4,size='s'):
 		"""_summary_
@@ -56,8 +56,8 @@ class EbaySpider(scrapy.Spider):
 		# Extrach the trksid to build a search request	
 		# trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()[0]
 		trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()
-		self.logger.info("Response URL: %s", response.url)
-		self.logger.info("Page title: %s", response.css("title::text").extract_first())
+		# self.logger.info("Response URL: %s", response.url)
+		# self.logger.info("Page title: %s", response.css("title::text").extract_first())
 
 		print('trksid: ',trksid)       
 		pages=self.pages+1
@@ -215,10 +215,6 @@ class EbaySpider(scrapy.Spider):
 		section = response.css("div[data-testid='x-about-this-item']")
 		item_specifics = self.extract_specs(section)
 		
-		# append dir_id and images_url to data table		
-		# url = data['Product_URL']
-		# DirId = url.split('itm/')[1].lstrip().split('?')[0]
-		
 		# Create directory if it doesn't exist
 		output_dir = Path("local/item-specs-jsons")
 		output_dir.mkdir(parents=True, exist_ok=True)
@@ -231,6 +227,7 @@ class EbaySpider(scrapy.Spider):
 				indent=4,
 				ensure_ascii=False
 			)
+		# populate data dictionary with item specifics
 		data["Brand"] = item_specifics.get("Brand")
 		data["Department"] = item_specifics.get("Department")
 		data["Color"] = item_specifics.get("Color")
@@ -242,8 +239,8 @@ class EbaySpider(scrapy.Spider):
 		data["MPN"] = item_specifics.get("MPN")
 		data["Model"] = item_specifics.get("Model")
 		
-		# data['prod_id']=DirId
 		data['image_urls']=image_urls
+		
 		yield data
 
 
