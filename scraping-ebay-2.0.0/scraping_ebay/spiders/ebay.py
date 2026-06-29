@@ -22,7 +22,7 @@ class EbaySpider(scrapy.Spider):
 		folder of csv: files containing product details, attributes data of corresponding products ids
 		folder of images: folders containing images of corresponding products ids 
 	"""
-	name = "ebay_spider_02"
+	name = "ebay"
 	allowed_domains = ["ebay.com","ebayimg.com"]
 	start_urls = ["https://www.ebay.com"]
 
