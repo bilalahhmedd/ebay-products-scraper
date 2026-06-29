@@ -15,36 +15,67 @@ from pathlib import Path
 from urllib.parse import urlencode, urlparse
 from logging import INFO
 
+import logging
 
-# class customImagePipeline(ImagesPipeline):  
-#     prod_ids = []
+logger = logging.getLogger(__name__)
 
-#     def get_media_requests(self, item, info):
-#         data = item #item.get('data')
+
+class customImagePipeline(ImagesPipeline):  
+    prod_ids = []
+
+    def get_media_requests(self, item, info):
+        # data = item #item.get('data')
         
-#         urls = item['images_url']
+        # urls = item['images_url']
+        image_urls = item.get("image_urls", [])
+        dir_id = item['Product_ID']
 
-#         dir_id = data['prod_id']
-#         for File_number, url in enumerate(urls):
-#             yield Request(
-#                 url=url,
-#                 # data=item["data"],
-#                 meta={'File_number': File_number,
-#                         'dir': str(dir_id),
-#                         # 'data': item.get('data'),
-#                 }
+        if not image_urls:
+            logger.warning(
+                "No images found for product %s",
+                item.get("Product_ID", "unknown")
+            )
+            return
+        logger.info(
+            "Downloading %d images for %s",
+            len(image_urls),
+            item["Product_ID"]
+        )
 
+        for index, url in enumerate(image_urls, start=1):
 
-#             # meta={'dir': item.get('Dir namenumber')}
-            
-#         )
+            yield Request(
+                url=url,
+                meta={
+                    "image_number": index,
+                    "product_id": item["Product_ID"],
+                },
+            )
+
+        # for File_number, url in enumerate(urls):
+        #     yield Request(
+        #         url=url,
+        #         # data=item["data"],
+        #         meta={'File_number': File_number,
+        #                 'dir': str(dir_id),
+        #                 # 'data': item.get('data'),
+        #         }
+        # )
         
     
-#     def file_path(self, request, response=None, info=None):
-#         file_name = request.meta.get('File_number')
-#         dir_name = request.meta.get('dir')
+    def file_path(self, request, response=None, info=None,*, item=None):
+            image_number = request.meta["image_number"]
+            product_id = request.meta["product_id"]
+
+            return (
+                f"images/{product_id}/"
+                f"{image_number:02d}.jpg"
+                )
         
-#         return f"Images/{dir_name}/{file_name}.jpg"
+        # file_name = request.meta.get('File_number')
+        # dir_name = request.meta.get('dir')
+        
+        # return f"Images/{dir_name}/{file_name}.jpg"
 
 class EbayProductImagePipeline(ImagesPipeline):
     def get_media_requests(self, item, info):
