@@ -5,7 +5,7 @@ import scrapy
 import pandas as pd
 import os
 import json
-
+from pathlib import Path
 import re
 #from local_utils import get_universal_ids
 class EbaySpider(scrapy.Spider):
@@ -323,7 +323,6 @@ class EbaySpider(scrapy.Spider):
 
 		self.logger.info("=" * 80)
 		self.logger.info("Parsing product")
-		self.logger.info(response.url)
 		self.logger.info(response.css("title::text").get())
 
 		if not os.path.exists('local/item-specs-jsons'):
@@ -357,17 +356,30 @@ class EbaySpider(scrapy.Spider):
 		# Extract Item Specifics
 		section = response.css("div[data-testid='x-about-this-item']")
 
-		specs = self.extract_specs(section)
+		item_specs = self.extract_specs(section)
 		
-		self.logger.info(specs)
+		self.logger.info(item_specs)
 
 		# append dir_id and images_url to data table		
 		url = data['Product_URL']
 		DirId = url.split('itm/')[1].lstrip().split('?')[0]
 		
+		# Create directory if it doesn't exist
+		output_dir = Path("local/item-specs-jsons")
+		output_dir.mkdir(parents=True, exist_ok=True)
+		json_path = output_dir / f"{DirId}.json"
+		with open(json_path, "w", encoding="utf-8") as fp:
+			json.dump(
+				item_specs,
+				fp,
+				indent=4,
+				ensure_ascii=False
+			)
+
 		# json.dump(spects, open("local/jsonspects/"+DirId+".json", 'wb'))
 		# with open("local/item-specs-jsons/"+DirId+".json", 'w') as fp:
 		# 	json.dump(spects, fp)
+		
 		# data['prod_id']=DirId
 		# data['images_url']=linklist
 		# yield data
