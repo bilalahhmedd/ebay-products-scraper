@@ -397,7 +397,7 @@ class EbaySpider(scrapy.Spider):
 		data["UPC"] = item_specifics.get("UPC")
 		data["MPN"] = item_specifics.get("MPN")
 		data["Model"] = item_specifics.get("Model")
-
+		
 		# data['prod_id']=DirId
 		data['image_urls']=image_urls
 		yield data
