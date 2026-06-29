@@ -320,6 +320,12 @@ class EbaySpider(scrapy.Spider):
 		Yields:
 			_dict_: product attributes and metadata
 		"""
+
+		self.logger.info("=" * 80)
+		self.logger.info("Parsing product")
+		self.logger.info(response.url)
+		self.logger.info(response.css("title::text").get())
+
 		if not os.path.exists('local/item-specs-jsons'):
 			os.makedirs('local/item-specs-jsons')
 
@@ -348,33 +354,57 @@ class EbaySpider(scrapy.Spider):
 					if url not in linklist:
 						linklist.append(url)
 
-		# spects
-		spects={}
-		spectdiv=response.xpath('//div[@class="ux-layout-section-module"]')[0] 
-		allrows=spectdiv.xpath(".//div[@class='ux-layout-section__row']")
-		for row in allrows: 
-			labels=row.xpath(".//div[@class='ux-labels-values__labels']") 
-			values=row.xpath(".//div[@class='ux-labels-values__values']") 
-			if (len(labels)==len(values)): 
-				for i in range(0,len(labels)): 
-					name=(labels[i].xpath('.//*/text()').extract_first()) 
-					val=(values[i].xpath('.//*/text()').extract_first())
+		# Extract Item Specifics
+		section = response.css("div[data-testid='x-about-this-item']")
 
+		specs = self.extract_specs(section)
 		
+		self.logger.info(specs)
 
 		# append dir_id and images_url to data table		
 		url = data['Product_URL']
 		DirId = url.split('itm/')[1].lstrip().split('?')[0]
 		
 		# json.dump(spects, open("local/jsonspects/"+DirId+".json", 'wb'))
-		with open("local/item-specs-jsons/"+DirId+".json", 'w') as fp:
-			json.dump(spects, fp)
-		data['prod_id']=DirId
-		data['images_url']=linklist
-		yield data
+		# with open("local/item-specs-jsons/"+DirId+".json", 'w') as fp:
+		# 	json.dump(spects, fp)
+		# data['prod_id']=DirId
+		# data['images_url']=linklist
+		# yield data
 
 
+	def extract_specs(self, section):
+		specs = {}
 
+		for spec in section.css("dl[data-testid='ux-labels-values']"):
+			key = " ".join(
+				t.strip()
+				for t in spec.css("dt ::text").getall()
+				if t.strip()
+			)
+
+			value = " ".join(
+				t.strip()
+				for t in spec.css("dd ::text").getall()
+				if t.strip()
+			)
+			value = self.clean_spec_value(value)
+			if key:
+				specs[key] = value
+
+		return specs
+
+	def clean_spec_value(self,value):
+		remove = [
+			"Read more about the condition",
+			"See all condition definitions",
+			"opens in a new window or tab",
+		]
+
+		for text in remove:
+			value = value.replace(text, "")
+
+		return " ".join(value.split())
 
 	def css_text(self, node, selector, default=None):
 		"""
