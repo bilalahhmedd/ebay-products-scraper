@@ -49,30 +49,25 @@ class EbaySpider(scrapy.Spider):
 		return scrapy.Request(
 			"https://www.ebay.com/",
 			callback=self.parse
-			# dont_filter=True,
 		)
-
+	
 	def parse(self, response):
-		# Extrach the trksid to build a search request	
-		# trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()[0]
-		trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()
-		# self.logger.info("Response URL: %s", response.url)
-		# self.logger.info("Page title: %s", response.css("title::text").extract_first())
+			"""Spider entry point."""
+			yield from self.schedule_search_requests()
 
-		print('trksid: ',trksid)       
-		pages=self.pages+1
-		print('total pages to scrap: ',pages)
+	def schedule_search_requests(self):
 		# Build the url and start the requests
 		for search_string in self.search_list:
 			print('processing string: ',search_string)
-			for x in range(1,self.pages+1):
-# 				yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40&_trksid=" + trksid +
-# 									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=240&_pgn="+str(x)+"&LH_ItemCondition=4", 
-# #									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
-# 									callback=self.parse_link)
-				yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40" +
-									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=10&_pgn="+str(x)+"&LH_ItemCondition=4", 
-#									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
+			for page in range(1,self.pages+1):
+				yield scrapy.Request(
+									"http://www.ebay.com/sch/i.html"
+						 			f"?_from=R40"
+									f"&_nkw={search_string.replace(' ','+').replace('_','+')}"
+									f"&_ipg=60"
+									f"&_pgn={page}"
+									f"&LH_ItemCondition=4",
+
 									callback=self.parse_search_page)
 
 
@@ -88,9 +83,6 @@ class EbaySpider(scrapy.Spider):
 		"""
 		results = response.css("li.s-card")
 		print('total products found: ',len(results))
-		
-		# Will be writing prod_ids to universal list page by page
-		prod_ids_page =[]
 
 		for product in results:
 			# get product url and skip sponsored listing links
