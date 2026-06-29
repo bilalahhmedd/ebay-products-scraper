@@ -5,6 +5,8 @@ import scrapy
 import pandas as pd
 import os
 import json
+from pathlib import Path
+import re
 #from local_utils import get_universal_ids
 class EbaySpider(scrapy.Spider):
 	"""_summary_ <-- this spider scrapes products listing data (csv,images folder). based on search query and number of pages, it scrapes web pages of allowed domain (ebay.com, ebay.uk)
@@ -20,8 +22,8 @@ class EbaySpider(scrapy.Spider):
 		folder of csv: files containing product details, attributes data of corresponding products ids
 		folder of images: folders containing images of corresponding products ids 
 	"""
-	name = "ebay_spider_01"
-	allowed_domains = ["ebay.com"] # "ebay.co.uk"
+	name = "ebay_spider_02"
+	allowed_domains = ["ebay.com","ebayimg.com"] # "ebay.co.uk"
 	start_urls = ["https://www.ebay.com","https://www.ebay.co.uk"]
 
 	def __init__(self, search_query="Tshirt,laced",pages=4,size='s'):
@@ -32,36 +34,30 @@ class EbaySpider(scrapy.Spider):
 			pages (int, optional): number of pages for each product to be scraped
 			size (str, optional): size (s,m,l) of images for each product to be scraped
 		"""
-		DEFAULT_REQUEST_HEADERS = {
-			"Accept-Language": "en-US,en;q=0.9",
-			"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-		}
 		# so first of all split serch based on comma
 		self.search_list = search_query.split(',')
-		self.pages=int(pages)
+		self.pages=max(1,int(pages))
 		self.size=size
 		# read universal prod_ids and pass to tracker
 		self.prod_urls_tracker = self.get_universal_ids()#self.read_univeral_prod_ids()
 		print('total universal ids: ',len(self.prod_urls_tracker))
+	
+	async def start(self):
+		yield self.homepage_request()
+	
+	def homepage_request(self):
+		return scrapy.Request(
+			"https://www.ebay.com/",
+			callback=self.parse
+			# dont_filter=True,
+		)
+
 	def parse(self, response):
 		# Extrach the trksid to build a search request	
 		# trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()[0]
 		trksid = response.css("input[type='hidden'][name='_trksid']").xpath("@value").extract()
-		# trksid = response.css(
-    	# 			"input[type='hidden'][name='_trksid']::attr(value)"
-		# 			).get()
-		# trksid = response.css(
-		# 				"input[type='hidden'][name='_trksid']"
-		# 			).xpath("@value").extract_first()
-		# trksid = response.xpath(
-		# 				"//input[@type='hidden' and @name='_trksid']/@value"
-		# 			).extract_first()
-		# log response url and title to debug
 		self.logger.info("Response URL: %s", response.url)
 		self.logger.info("Page title: %s", response.css("title::text").extract_first())
-		# write response body to debug file
-		# with open("../logs/ebay_debug.html", "wb") as f:
-		# 				f.write(response.body)
 
 		print('trksid: ',trksid)       
 		pages=self.pages+1
@@ -75,12 +71,13 @@ class EbaySpider(scrapy.Spider):
 # #									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
 # 									callback=self.parse_link)
 				yield scrapy.Request("http://www.ebay.com/sch/i.html?_from=R40" +
-									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=240&_pgn="+str(x)+"&LH_ItemCondition=4", 
+									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=10&_pgn="+str(x)+"&LH_ItemCondition=4", 
 #									"&_nkw=" + search_string.replace(' ','+').replace('_','+') + "&_ipg=200&_pgn="+str(x), 
-									callback=self.parse_link)
+									callback=self.parse_search_page)
+
 
 	# Parse the search results
-	def parse_link(self, response):
+	def parse_search_page(self, response):
 		"""_summary_
 
 		Args:
@@ -89,80 +86,110 @@ class EbaySpider(scrapy.Spider):
 		Yields:
 			_type_: list of product links, meta data of each product, 
 		"""
-		# Extract the list of products 
-		results = response.xpath('//div/div/ul/li[contains(@class, "s-item" )]')
+		self.logger.info("URL: %s", response.url)
+		self.logger.info("Title: %s", response.css("title::text").get())
 
-		# Extract info for each product
-		'''
-		Will be writing prod_ids to universal list page by page
-		'''
+		results = response.css("li.s-card")
+		print('total products found: ',len(results))
 		
+		# Will be writing prod_ids to universal list page by page
 		prod_ids_page =[]
-		for product in results:		
-			'''
-			First check if product url is not allready scrapped
-			'''
-			product_url = product.xpath('.//a[@class="s-item__link"]/@href').extract_first()
-			prod_id=product_url.split('itm/')[1].lstrip().split('?')[0]
-			#prod_id = prod_id.replace(' ','')
-			if int(prod_id) not in self.prod_urls_tracker:
-				# append prod_id to prod_urls_trakcer for local session
-				self.prod_urls_tracker.append(prod_id)
-				prod_ids_page.append(prod_id)
-				name = product.xpath('.//*[@class="s-item__title"]//text()').extract_first()
-				# Sponsored or New Listing links have a different class
-				if name == None:
-					name = product.xpath('.//*[@class="s-item__title s-item__title--has-tags"]/text()').extract_first()			
-					if name == None:
-						name = product.xpath('.//*[@class="s-item__title s-item__title--has-tags"]//text()').extract_first()			
-				if name == 'New Listing':
-					name = product.xpath('.//*[@class="s-item__title"]//text()').extract()[1]
 
-				# If this get a None result
-				if name == None:
-					name = "ERROR"
+		for product in results:
+			# get product url and skip sponsored listing links
+			product_url = self.css_attr(
+							product,
+							"a.s-card__link::attr(href)"
+						)
+			if not product_url:
+				continue
 
-				price = product.xpath('.//*[@class="s-item__price"]/text()').extract_first()
-				status = product.xpath('.//*[@class="SECONDARY_INFO"]/text()').extract_first()
-				seller_level = product.xpath('.//*[@class="s-item__etrs-text"]/text()').extract_first()
-				location = product.xpath('.//*[@class="s-item__location s-item__itemLocation"]/text()').extract_first()
+			if "/itm/" not in product_url:
+				continue
+			
+			print("Product URL:", product_url)
+
+
+			product_id = re.search(r"/itm/(\d+)", product_url)
+			product_id = product_id.group(1) if product_id else None
+			if int(product_id) not in self.prod_urls_tracker:
 				
+				# print("Product ID:", product_id)
+				
+				title = self.css_text(
+							product,
+							".s-card__title > span:first-child::text"
+						)
+				if not title:
+					continue
 
-				# Set default values
-				stars = 0
-				ratings = 0
+				# print("Product Title:", title)
+				
+				status = self.css_text(
+								product,
+								".s-card__subtitle span:first-child::text"
+							)
 
-				stars_text = product.xpath('.//*[@class="clipped"]/text()').extract_first()
-				if stars_text: stars = stars_text[:3]
-				ratings_text = product.xpath('.//*[@aria-hidden="true"]/text()').extract_first()
-				if ratings_text: ratings = ratings_text.split(' ')[0]
+				if status:
+					status = status.replace("·", "").strip()
+				# print("Product Status:", status)
+				price = self.css_text(
+								product,
+								".s-card__price::text"
+							)
+				# print("Product Price:", price)
+				
+				shipping = None
+
+				for row in product.css(".s-card__attribute-row"):
+					text = " ".join(row.css("span::text").getall()).strip()
+
+					if "delivery" in text.lower():
+						shipping = text
+						break
+				
+				# print("Product Shipping:", shipping)
+				
+				location = None
+
+				for row in product.css(".s-card__attribute-row"):
+					text = " ".join(row.css("span::text").getall()).strip()
+
+					if text.startswith("Located"):
+						location = text.replace("Located in", "").strip()
+						break
+				
+				# print("Product Location:", location)
+				
+				image_url = self.css_attr(
+								product,
+								"img.s-card__image::attr(src)"
+							)
+				# image_url = image_url.replace(
+				# 				"s-l140.webp",
+				# 				"s-l500.jpg"
+				# 			)
+				# print("Product Image URL:", image_url)
 
 				summary_data = {
-								"Name":name,
+								"Product_ID":product_id,
+								"Title":title,
 								"Status":status,
-								"Seller_Level":seller_level,
 								"Location":location,
 								"Price":price,
-								"Stars":stars,
-								"Ratings":ratings,
-								"URL": product_url
+								"Shipping":shipping,
+								"Product_URL": product_url,
+								"Image_URL": image_url
+									
 								}
-
-				# Go to the product details page
 				data = {'summary_data': summary_data}
 				yield scrapy.Request(product_url, meta=data, callback=self.parse_product_details_v1)
-				
 			else:
-				print('skipping: ',prod_id)
-				continue 
-		# now append prod_ids of this page to universal list
+				print('skipping: ',product_id)
+				continue	
+		
 		#pd.DataFrame({'prod-id':prod_ids_page}).to_csv('universal-prod-ids.csv',mode='a',header=False)
 
-
-
-
-
-			
 
 	# Parse details page for each product
 	def parse_product_details(self, response):
@@ -293,18 +320,44 @@ class EbaySpider(scrapy.Spider):
 		Yields:
 			_dict_: product attributes and metadata
 		"""
-		if not os.path.exists('local/item-specs-jsons'):
-			os.makedirs('local/item-specs-jsons')
+
+		self.logger.info("=" * 80)
+		self.logger.info("Parsing product")
+		self.logger.info(response.css("title::text").get())
+
+		# implement gallery images extraction
+
+		images = response.css("img")
+
+		self.logger.info(f"Total images: {len(images)}")
+
+		image_urls = []
+
+		gallery = response.css("div.ux-image-carousel img")
+		for img in gallery:
+
+			url = (
+				img.css("::attr(data-zoom-src)").get()
+				or img.css("::attr(src)").get()
+				or img.css("::attr(data-src)").get()
+			)
+
+			if not url:
+				continue
+
+			if "i.ebayimg.com" not in url:
+				continue
+
+			image_urls.append(url)
+
+		image_urls = list(dict.fromkeys(image_urls))
+		# self.logger.info("-" * 80)
+		# self.logger.info(f"Image URLs: {image_urls}")
 
 
 		# Get the summary data
 		data = response.meta['summary_data']
 
-		# Add more data from details page
-		data['UPC'] = response.xpath('//h2[@itemprop="gtin13"]/text()').extract_first()
-		links=response.xpath("//img/@src")
-		html=""
-		linklist=[]
 		#set size of images
 		img_size='s-l500'
 		if self.size =='m':
@@ -312,67 +365,95 @@ class EbaySpider(scrapy.Spider):
 		elif self.size=='l':
 			img_size='s-l2000'
 
+		# Extract Item Specifics
+		section = response.css("div[data-testid='x-about-this-item']")
 
-		for link in links:
-			url=link.get()
-			if any(extension in url for extension in [".jpg"]):
-				if "s-l64" in url:
-					url=url.replace("s-l64",img_size)
-					if url not in linklist:
-						linklist.append(url)
-
-
-
-
-
-		# spects
-		spects={}
-		spectdiv=response.xpath('//div[@class="ux-layout-section-module"]')[0] 
-		allrows=spectdiv.xpath(".//div[@class='ux-layout-section__row']")
-		for row in allrows: 
-			labels=row.xpath(".//div[@class='ux-labels-values__labels']") 
-			values=row.xpath(".//div[@class='ux-labels-values__values']") 
-			if (len(labels)==len(values)): 
-				for i in range(0,len(labels)): 
-					name=(labels[i].xpath('.//*/text()').extract_first()) 
-					val=(values[i].xpath('.//*/text()').extract_first())
-
-		# try:
-		# 	spects["EbayItemNumber"] = response.xpath("//div[@id='descItemNumber']/text()").extract_first()
-		# except:
-		# 	pass
-
-		# spectdiv=response.xpath('//div[@class="vim x-about-this-item"]')[0]
-		# allrows=spectdiv.xpath(".//div[@class='ux-layout-section__row']") 
-		# for row in allrows:
-		# 	labels=row.xpath(".//div[@class='ux-labels-values__labels']")  
-		# 	values=row.xpath(".//div[@class='ux-labels-values__values']")  
-		# 	if (len(labels)==len(values)):
-		# 		for i in range(0,len(labels)):  
-		# 			name=(labels[i].xpath('.//*/text()').extract_first()) 
-		# 			val=(values[i].xpath('.//*/text()').extract_first()) 					
-		# 			spects[name]=val
-		# 			# data[name]=val
+		item_specifics = self.extract_specs(section)
 		
-		
-
-
+		# self.logger.info(item_specifics)
 
 		# append dir_id and images_url to data table		
-		url = data['URL']
+		url = data['Product_URL']
 		DirId = url.split('itm/')[1].lstrip().split('?')[0]
 		
-		# json.dump(spects, open("local/jsonspects/"+DirId+".json", 'wb'))
-		with open("local/item-specs-jsons/"+DirId+".json", 'w') as fp:
-			json.dump(spects, fp)
-		data['prod_id']=DirId
-		data['images_url']=linklist
+		# Create directory if it doesn't exist
+		output_dir = Path("local/item-specs-jsons")
+		output_dir.mkdir(parents=True, exist_ok=True)
+		json_path = output_dir / f"{DirId}.json"
+		with open(json_path, "w", encoding="utf-8") as fp:
+			json.dump(
+				item_specifics,
+				fp,
+				indent=4,
+				ensure_ascii=False
+			)
+		data["Brand"] = item_specifics.get("Brand")
+		data["Department"] = item_specifics.get("Department")
+		data["Color"] = item_specifics.get("Color")
+		data["Size"] = (
+			item_specifics.get("US Shoe Size")
+			or item_specifics.get("Size")
+		)
+		data["UPC"] = item_specifics.get("UPC")
+		data["MPN"] = item_specifics.get("MPN")
+		data["Model"] = item_specifics.get("Model")
+		
+		# data['prod_id']=DirId
+		data['image_urls']=image_urls
 		yield data
 
 
+	def extract_specs(self, section):
+		specs = {}
+
+		for spec in section.css("dl[data-testid='ux-labels-values']"):
+			key = " ".join(
+				t.strip()
+				for t in spec.css("dt ::text").getall()
+				if t.strip()
+			)
+
+			value = " ".join(
+				t.strip()
+				for t in spec.css("dd ::text").getall()
+				if t.strip()
+			)
+			value = self.clean_spec_value(value)
+			if key:
+				specs[key] = value
+
+		return specs
+
+	def clean_spec_value(self,value):
+		remove = [
+			"Read more about the condition",
+			"See all condition definitions",
+			"opens in a new window or tab",
+		]
+
+		for text in remove:
+			value = value.replace(text, "")
+
+		return " ".join(value.split())
+
+	def css_text(self, node, selector, default=None):
+		"""
+		Return stripped text from a CSS selector.
+		"""
+		value = node.css(selector).get()
+		if value:
+			return value.strip()
+		return default
 
 
-
+	def css_attr(self, node, selector, default=None):
+		"""
+		Return stripped attribute value.
+		"""
+		value = node.css(selector).get()
+		if value:
+			return value.strip()
+		return default
 
 
 

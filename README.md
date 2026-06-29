@@ -9,15 +9,13 @@ An ebay-scraper project developed using scrapy framework. It scraps product deta
 check requirements.txt 
 # Installation
 * clone repo
-* cd to scraping-ebay-1.0.3
+* cd to scraping-ebay-2.0.0
 * install dependencies (run pip install -r requirements.txt)
 
 # Running Scraper
 
-* cd scrapy-ebay-1.0.3 folder via terminal
-* run command 
-    * to generate data: ```scrapy crawl ebay_spider_01 -o output.csv -a search_query='ebay product name' ```
-    * to count number of products available to scrap on ebay: ```scrapy crawl ebay_result_count -o output.csv -a search_query='ebay product name' ```
+* cd scrapy-ebay-2.0.0 folder via terminal
+* run command: ```scrapy crawl ebay -o output.csv -a search_query='ebay product name' -a pages=1```
 
 # Output 
 * local folder and output.csv file will be created
