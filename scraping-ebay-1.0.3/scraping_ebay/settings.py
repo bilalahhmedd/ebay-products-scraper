@@ -18,8 +18,8 @@ SPIDER_MODULES = ['scraping_ebay.spiders']
 NEWSPIDER_MODULE = 'scraping_ebay.spiders'
 
 #ITEM_PIPELINES = {'scraping_ebay.pipelines.myImagePipeline': 2}
-# ITEM_PIPELINES = {'scraping_ebay.pipelines.customImagePipeline': 1}
-ITEM_PIPELINES = {'scraping_ebay.pipelines.EbayProductImagePipeline': 1}
+ITEM_PIPELINES = {'scraping_ebay.pipelines.customImagePipeline': 1}
+# ITEM_PIPELINES = {'scraping_ebay.pipelines.EbayProductImagePipeline': 1}
 #ITEM_PIPELINES = {'scraping_ebay.pipelines.ScrapingEbayPipeline': 1}
 #ITEM_PIPELINES = {'scraping_ebay.pipelines.customImagePipeline': 2}
 IMAGES_STORE = 'local'
