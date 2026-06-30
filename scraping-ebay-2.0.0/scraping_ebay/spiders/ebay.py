@@ -8,6 +8,7 @@ import re
 
 # local imports
 from scraping_ebay.utils.selectors import SelectorUtils
+from scraping_ebay.utils.url_utils import URLUtils
 
 class EbaySpider(scrapy.Spider):
 	"""_summary_ <-- this spider scrapes products listing data (csv,images folder). based on search query and number of pages, it scrapes web pages of allowed domain (ebay.com, ebay.uk)
@@ -92,14 +93,17 @@ class EbaySpider(scrapy.Spider):
 							product,
 							"a.s-card__link::attr(href)"
 						)
-			if not product_url:
+			product_id = URLUtils.extract_product_id(product_url)
+			if not product_id:
 				continue
+			# if not product_url:
+			# 	continue
 
-			if "/itm/" not in product_url:
-				continue
+			# if "/itm/" not in product_url:
+			# 	continue
 
-			product_id = re.search(r"/itm/(\d+)", product_url)
-			product_id = product_id.group(1) if product_id else None
+			# product_id = re.search(r"/itm/(\d+)", product_url)
+			# product_id = product_id.group(1) if product_id else None
 			if int(product_id) not in self.prod_urls_tracker:
 				
 				title = SelectorUtils.css_text(
