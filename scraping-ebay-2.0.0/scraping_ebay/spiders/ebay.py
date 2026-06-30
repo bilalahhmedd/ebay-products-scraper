@@ -9,6 +9,7 @@ import re
 # local imports
 from scraping_ebay.utils.selectors import SelectorUtils
 from scraping_ebay.utils.url_utils import URLUtils
+from scraping_ebay.utils.image_utils import ImageUtils
 
 class EbaySpider(scrapy.Spider):
 	"""_summary_ <-- this spider scrapes products listing data (csv,images folder). based on search query and number of pages, it scrapes web pages of allowed domain (ebay.com, ebay.uk)
@@ -190,6 +191,7 @@ class EbaySpider(scrapy.Spider):
 				or img.css("::attr(src)").get()
 				or img.css("::attr(data-src)").get()
 			)
+			url = ImageUtils.get_high_resolution_url(url)
 
 			if not url:
 				continue
