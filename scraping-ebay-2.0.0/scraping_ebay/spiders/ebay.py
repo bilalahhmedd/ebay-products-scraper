@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-from typing import Sized
-from urllib import response
 import scrapy
 import pandas as pd
 import os
 import json
 from pathlib import Path
 import re
+
+# local imports
+from scraping_ebay.utils.selectors import SelectorUtils
 
 class EbaySpider(scrapy.Spider):
 	"""_summary_ <-- this spider scrapes products listing data (csv,images folder). based on search query and number of pages, it scrapes web pages of allowed domain (ebay.com, ebay.uk)
@@ -87,7 +88,7 @@ class EbaySpider(scrapy.Spider):
 
 		for product in results:
 			# get product url and skip sponsored listing links
-			product_url = self.css_attr(
+			product_url = SelectorUtils.css_attr(
 							product,
 							"a.s-card__link::attr(href)"
 						)
@@ -101,14 +102,14 @@ class EbaySpider(scrapy.Spider):
 			product_id = product_id.group(1) if product_id else None
 			if int(product_id) not in self.prod_urls_tracker:
 				
-				title = self.css_text(
+				title = SelectorUtils.css_text(
 							product,
 							".s-card__title > span:first-child::text"
 						)
 				if not title:
 					continue
 
-				status = self.css_text(
+				status = SelectorUtils.css_text(
 								product,
 								".s-card__subtitle span:first-child::text"
 							)
@@ -116,7 +117,7 @@ class EbaySpider(scrapy.Spider):
 				if status:
 					status = status.replace("·", "").strip()
 				
-				price = self.css_text(
+				price = SelectorUtils.css_text(
 								product,
 								".s-card__price::text"
 							)
@@ -138,7 +139,7 @@ class EbaySpider(scrapy.Spider):
 						location = text.replace("Located in", "").strip()
 						break
 				
-				image_url = self.css_attr(
+				image_url = SelectorUtils.css_attr(
 								product,
 								"img.s-card__image::attr(src)"
 							)
@@ -280,28 +281,6 @@ class EbaySpider(scrapy.Spider):
 			value = value.replace(text, "")
 
 		return " ".join(value.split())
-
-	def css_text(self, node, selector, default=None):
-		"""
-		Return stripped text from a CSS selector.
-		"""
-		value = node.css(selector).get()
-		if value:
-			return value.strip()
-		return default
-
-
-	def css_attr(self, node, selector, default=None):
-		"""
-		Return stripped attribute value.
-		"""
-		value = node.css(selector).get()
-		if value:
-			return value.strip()
-		return default
-
-
-
 
 	def read_univeral_prod_ids(self):
 		"""_Read universal product IDs from CSV file._
