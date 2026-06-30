@@ -20,7 +20,8 @@ class EbaySpider(scrapy.Spider):
 
 	Yields:
 		folder of csv: files containing product details, attributes data of corresponding products ids
-		folder of images: folders containing images of corresponding products ids 
+		folder of images: folders containing images of corresponding products ids
+		folder of json: files containing item specifics of corresponding products ids 
 	"""
 	name = "ebay"
 	allowed_domains = ["ebay.com","ebayimg.com"]
@@ -168,11 +169,6 @@ class EbaySpider(scrapy.Spider):
 		Yields:
 			_dict_: product attributes and metadata
 		"""
-
-		self.logger.info("=" * 80)
-		self.logger.info("Parsing product")
-		self.logger.info(response.css("title::text").get())
-
 		# implement gallery images extraction
 
 		images = response.css("img")
@@ -237,6 +233,14 @@ class EbaySpider(scrapy.Spider):
 
 
 	def extract_specs(self, section):
+		"""_Extract Item Specifics from Response.css section_
+
+		Args:
+			section (_str_): _string of html section_
+
+		Returns:
+			_dict_: _dictionary of item specifics_
+		"""
 		specs = {}
 
 		for spec in section.css("dl[data-testid='ux-labels-values']"):
@@ -258,6 +262,14 @@ class EbaySpider(scrapy.Spider):
 		return specs
 
 	def clean_spec_value(self,value):
+		"""_clean item specs value_
+
+		Args:
+			value (_str_): _item specs value_
+
+		Returns:
+			_str_: _cleaned item specs value_
+		"""
 		remove = [
 			"Read more about the condition",
 			"See all condition definitions",
@@ -292,6 +304,11 @@ class EbaySpider(scrapy.Spider):
 
 
 	def read_univeral_prod_ids(self):
+		"""_Read universal product IDs from CSV file._
+
+		Returns:
+			_list_: _list of universal product IDs_
+		"""
 		try:
 			return list(pd.read_csv('universal-prod-ids.csv')['prod-id'])
 		except FileNotFoundError:
@@ -301,7 +318,11 @@ class EbaySpider(scrapy.Spider):
 			return list(pd.read_csv('universal-prod-ids.csv')['prod-id'])
 		
 	def get_universal_ids(self):
+		"""_generate list of universal product IDs._
 
+		Returns:
+			_list_: _list of universal product IDs_
+		"""
 		ids =[]
 		all_csvs=[]
 		# for root, directories, files in os.walk("../../", topdown=False):
@@ -319,10 +340,6 @@ class EbaySpider(scrapy.Spider):
 			except:
 				print(csv_file,' is empty')
 				pass
-			# df=pd.read_csv(csv_file)
-			# for id in list(df['prod_id']):
-			# 		ids.append(int(id))
-
 
 		return ids	
 		
