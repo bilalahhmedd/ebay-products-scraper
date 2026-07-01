@@ -1,7 +1,7 @@
 from .base_extractor import BaseExtractor
-from models.summary_product import SummaryProduct
-from utils.selectors import SelectorUtils
-from utils.url_utils import URLUtils
+from scraping_ebay.models.summary_product import SummaryProduct
+from scraping_ebay.utils.selectors import SelectorUtils
+from scraping_ebay.utils.url_utils import URLUtils
 
 class SearchPageExtractor(BaseExtractor):
 

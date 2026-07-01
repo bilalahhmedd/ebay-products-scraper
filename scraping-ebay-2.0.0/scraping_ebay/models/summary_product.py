@@ -10,7 +10,7 @@ class SummaryProduct(BaseEntity):
     """
 
     product_id: str
-    products_url: str
+    product_url: str
 
     title: str
     price: Optional[str] = None
