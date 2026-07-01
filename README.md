@@ -11,13 +11,13 @@ scraping-ebay-2.0.0 is stable, modernized and fully functional version at moment
 * git clone https://github.com/bilalahhmedd/ebay-products-scraper
 * pip install -r requirements.txt
 * cd scraping-ebay-2.0.0
-* run command: ```scrapy crawl ebay -o products.csv -a search_query='ebay product name' -a pages=1```
+* run command: ```scrapy crawl ebay -o products.csv -a search='ebay product name' -a pages=1```
 
 ### Command Arguments
 
 | Argument | Type | Required | Default | Example | Description |
 |----------|------|:--------:|---------|---------|-------------|
-| `search_query` | String | ✅ | — | `"men shoes"` | Search keyword(s) to crawl. |
+| `search` | String | ✅ | — | `"men shoes"` | Search keyword(s) to crawl. |
 | `pages` | Integer | ❌ | `1` | `4` | Number of search result pages to scrape. |
 | `output` | String | ✅ | — | `products.csv` | Output CSV file name. |
 
