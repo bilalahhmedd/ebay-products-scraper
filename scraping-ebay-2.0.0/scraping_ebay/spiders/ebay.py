@@ -26,7 +26,7 @@ class EbaySpider(scrapy.Spider):
 	allowed_domains = ["ebay.com","ebayimg.com"]
 	start_urls = ["https://www.ebay.com"]
 
-	def __init__(self, search_query="Tshirt,laced",pages=4,size='s'):
+	def __init__(self, search="Tshirt,laced",pages=4,size='s'):
 		"""_summary_
 
 		Args:
@@ -35,7 +35,7 @@ class EbaySpider(scrapy.Spider):
 			size (str, optional): size (s,m,l) of images for each product to be scraped
 		"""
 		# so first of all split serch based on comma
-		self.search_list = search_query.split(',')
+		self.search_list = search.split(',')
 		self.pages=max(1,int(pages))
 		self.size=size
 
