@@ -9,20 +9,48 @@ from .summary_product import SummaryProduct
 
 class Product(SummaryProduct):
     """
-    Complete Product Information
+    Complete product information extracted from the product detail page.
     """
-    brand: Optional[str] = None
 
+    # -----------------------------
+    # Product Attributes
+    # -----------------------------
+    brand: Optional[str] = None
+    department: Optional[str] = None
+    color: Optional[str] = None
+    size: Optional[str] = None
+    model: Optional[str] = None
+    mpn: Optional[str] = None
     upc: Optional[str] = None
 
-    mpn: Optional[str] = None
-
-    model: Optional[str] = None
-
+    # -----------------------------
+    # Product Description
+    # -----------------------------
     description: Optional[str] = None
 
-    seller: Optional[str] = None
+    # -----------------------------
+    # Seller Information
+    # -----------------------------
+    seller_name: Optional[str] = None
+    seller_feedback: Optional[str] = None
+    seller_rating: Optional[str] = None
 
-    item_specifics: Dict[str, str] = Field(default_factory=dict)
+    # -----------------------------
+    # Shipping / Returns
+    # -----------------------------
+    shipping_cost: Optional[str] = None
+    shipping_service: Optional[str] = None
+    estimated_delivery: Optional[str] = None
+    returns: Optional[str] = None
 
-    images: List[Image] = Field(default_factory=list)
+    # -----------------------------
+    # Item Specifics
+    # -----------------------------
+    item_specifics: dict[str, str] = Field(default_factory=dict)
+
+    # -----------------------------
+    # Images
+    # -----------------------------
+    image_urls: list[str] = Field(default_factory=list)
+
+    images: list[Image] = Field(default_factory=list)
