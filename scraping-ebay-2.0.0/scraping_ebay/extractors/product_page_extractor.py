@@ -5,7 +5,7 @@ from scraping_ebay.models.product import Product
 from scraping_ebay.models.summary_product import SummaryProduct
 from scraping_ebay.utils.image_utils import ImageUtils
 
-def ProductPageExtractor(BaseExtractor):
+class ProductPageExtractor(BaseExtractor):
 
     def __init__(self,response,summary: SummaryProduct):
         self.response = response
@@ -35,7 +35,7 @@ def ProductPageExtractor(BaseExtractor):
             #-----------------------------------
             brand=item_specifics.get("Brand"),
             department=item_specifics.get("Department"),
-            color=item_specifics.get("Color")
+            color=item_specifics.get("Color"),
             size=(
                 item_specifics.get("US Shoe Size")
                 or item_specifics.get("Size")

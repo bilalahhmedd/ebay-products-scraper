@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 import scrapy
-import pandas as pd
-import os
 import json
 from pathlib import Path
-import re
 
 # local imports
-from scraping_ebay.utils.selectors import SelectorUtils
-from scraping_ebay.utils.url_utils import URLUtils
-from scraping_ebay.utils.image_utils import ImageUtils
+from scraping_ebay.extractors.search_page_extractor import SearchPageExtractor
+from scraping_ebay.extractors.product_page_extractor import ProductPageExtractor
 
 class EbaySpider(scrapy.Spider):
 	"""_summary_ <-- this spider scrapes products listing data (csv,images folder). based on search query and number of pages, it scrapes web pages of allowed domain (ebay.com, ebay.uk)
@@ -42,9 +38,7 @@ class EbaySpider(scrapy.Spider):
 		self.search_list = search_query.split(',')
 		self.pages=max(1,int(pages))
 		self.size=size
-		# read universal prod_ids and pass to tracker
-		self.prod_urls_tracker = self.get_universal_ids()#self.read_univeral_prod_ids()
-		print('total universal ids: ',len(self.prod_urls_tracker))
+
 	
 	async def start(self):
 		yield self.homepage_request()
@@ -89,82 +83,11 @@ class EbaySpider(scrapy.Spider):
 		print('total products found: ',len(results))
 
 		for product in results:
-			# get product url and skip sponsored listing links
-			product_url = SelectorUtils.css_attr(
-							product,
-							"a.s-card__link::attr(href)"
-						)
-			product_id = URLUtils.extract_product_id(product_url)
-			if not product_id:
-				continue
-			# if not product_url:
-			# 	continue
-
-			# if "/itm/" not in product_url:
-			# 	continue
-
-			# product_id = re.search(r"/itm/(\d+)", product_url)
-			# product_id = product_id.group(1) if product_id else None
-			if int(product_id) not in self.prod_urls_tracker:
+			summary = SearchPageExtractor(product_node=product).extract()
+			# print(f'summary: {summary}')
+			data = {'summary': summary}
+			yield scrapy.Request(summary.product_url, meta=data, callback=self.parse_product_details)
 				
-				title = SelectorUtils.css_text(
-							product,
-							".s-card__title > span:first-child::text"
-						)
-				if not title:
-					continue
-
-				status = SelectorUtils.css_text(
-								product,
-								".s-card__subtitle span:first-child::text"
-							)
-
-				if status:
-					status = status.replace("·", "").strip()
-				
-				price = SelectorUtils.css_text(
-								product,
-								".s-card__price::text"
-							)
-				
-				shipping = None
-
-				for row in product.css(".s-card__attribute-row"):
-					text = " ".join(row.css("span::text").getall()).strip()
-
-					if "delivery" in text.lower():
-						shipping = text
-						break
-				
-				location = None
-				for row in product.css(".s-card__attribute-row"):
-					text = " ".join(row.css("span::text").getall()).strip()
-
-					if text.startswith("Located"):
-						location = text.replace("Located in", "").strip()
-						break
-				
-				image_url = SelectorUtils.css_attr(
-								product,
-								"img.s-card__image::attr(src)"
-							)
-
-				summary_data = {
-								"Product_ID":product_id,
-								"Title":title,
-								"Status":status,
-								"Location":location,
-								"Price":price,
-								"Shipping":shipping,
-								"Product_URL": product_url,
-								"Image_URL": image_url
-									
-								}
-				data = {'summary_data': summary_data}
-				yield scrapy.Request(product_url, meta=data, callback=self.parse_product_details)
-			else:
-				print('skipping: ',product_id)
-				continue	
 
 	def parse_product_details(self, response):
 		"""_summary_ parses attributes data of each product 
@@ -175,159 +98,25 @@ class EbaySpider(scrapy.Spider):
 		Yields:
 			_dict_: product attributes and metadata
 		"""
-		# implement gallery images extraction
 
-		images = response.css("img")
-
-		self.logger.info(f"Total images: {len(images)}")
-
-		image_urls = []
-
-		gallery = response.css("div.ux-image-carousel img")
-		for img in gallery:
-
-			url = (
-				img.css("::attr(data-zoom-src)").get()
-				or img.css("::attr(src)").get()
-				or img.css("::attr(data-src)").get()
-			)
-			url = ImageUtils.get_high_resolution_url(url)
-
-			if not url:
-				continue
-
-			if "i.ebayimg.com" not in url:
-				continue
-
-			image_urls.append(url)
-
-		image_urls = list(dict.fromkeys(image_urls))
+		summary = response.meta['summary']
+		product = ProductPageExtractor(response=response, summary=summary).extract()
 		
+		# --------------------------------------------------
+		# Temporary: Save Item Specifics JSON
+		# --------------------------------------------------
 
-		data = response.meta['summary_data']
-
-		# Extract Item Specifics
-		section = response.css("div[data-testid='x-about-this-item']")
-		item_specifics = self.extract_specs(section)
-		
-		# Create directory if it doesn't exist
 		output_dir = Path("local/item-specs-jsons")
 		output_dir.mkdir(parents=True, exist_ok=True)
-		DirId = data['Product_ID']
-		json_path = output_dir / f"{DirId}.json"
+
+		json_path = output_dir / f"{product.product_id}.json"
+
 		with open(json_path, "w", encoding="utf-8") as fp:
 			json.dump(
-				item_specifics,
+				product.item_specifics,
 				fp,
 				indent=4,
-				ensure_ascii=False
+				ensure_ascii=False,
 			)
-		# populate data dictionary with item specifics
-		data["Brand"] = item_specifics.get("Brand")
-		data["Department"] = item_specifics.get("Department")
-		data["Color"] = item_specifics.get("Color")
-		data["Size"] = (
-			item_specifics.get("US Shoe Size")
-			or item_specifics.get("Size")
-		)
-		data["UPC"] = item_specifics.get("UPC")
-		data["MPN"] = item_specifics.get("MPN")
-		data["Model"] = item_specifics.get("Model")
 		
-		data['image_urls']=image_urls
-		
-		yield data
-
-
-	def extract_specs(self, section):
-		"""_Extract Item Specifics from Response.css section_
-
-		Args:
-			section (_str_): _string of html section_
-
-		Returns:
-			_dict_: _dictionary of item specifics_
-		"""
-		specs = {}
-
-		for spec in section.css("dl[data-testid='ux-labels-values']"):
-			key = " ".join(
-				t.strip()
-				for t in spec.css("dt ::text").getall()
-				if t.strip()
-			)
-
-			value = " ".join(
-				t.strip()
-				for t in spec.css("dd ::text").getall()
-				if t.strip()
-			)
-			value = self.clean_spec_value(value)
-			if key:
-				specs[key] = value
-
-		return specs
-
-	def clean_spec_value(self,value):
-		"""_clean item specs value_
-
-		Args:
-			value (_str_): _item specs value_
-
-		Returns:
-			_str_: _cleaned item specs value_
-		"""
-		remove = [
-			"Read more about the condition",
-			"See all condition definitions",
-			"opens in a new window or tab",
-		]
-
-		for text in remove:
-			value = value.replace(text, "")
-
-		return " ".join(value.split())
-
-	def read_univeral_prod_ids(self):
-		"""_Read universal product IDs from CSV file._
-
-		Returns:
-			_list_: _list of universal product IDs_
-		"""
-		try:
-			return list(pd.read_csv('universal-prod-ids.csv')['prod-id'])
-		except FileNotFoundError:
-			print('creating file universal-prod-ids.csv')
-			# create new csv file
-			pd.DataFrame(columns=['prod-id']).to_csv('universal-prod-ids.csv')
-			return list(pd.read_csv('universal-prod-ids.csv')['prod-id'])
-		
-	def get_universal_ids(self):
-		"""_generate list of universal product IDs._
-
-		Returns:
-			_list_: _list of universal product IDs_
-		"""
-		ids =[]
-		all_csvs=[]
-		# for root, directories, files in os.walk("../../", topdown=False):
-		for root, directories, files in os.walk("./", topdown=False):
-			for name in files:
-				f=(os.path.join(root, name))
-				if f.endswith((".csv")):
-					all_csvs.append(f)
-		# iterate thorugh each csv file and build list of universal keys out of it
-		for csv_file in all_csvs:
-			try:
-				df=pd.read_csv(csv_file)
-				for id in list(df['prod_id']):
-						ids.append(int(id))
-			except:
-				print(csv_file,' is empty')
-				pass
-
-		return ids	
-		
-
-
-
+		yield product
