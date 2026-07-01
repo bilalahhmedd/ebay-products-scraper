@@ -7,35 +7,25 @@ This project consists of two saparate scrapy bots.
 ##### scraping-ebay-2.0.0 [latest]
 scraping-ebay-2.0.0 is stable, modernized and fully functional version at moment.
 
-# Dependencies
+# Quick Start
+* git clone https://github.com/bilalahhmedd/ebay-products-scraper
+* pip install -r requirements.txt
+* cd scraping-ebay-2.0.0
+* run command: ```scrapy crawl ebay -o products.csv -a search_query='ebay product name' -a pages=1```
+
+### Command Arguments
+
+| Argument | Type | Required | Default | Example | Description |
+|----------|------|:--------:|---------|---------|-------------|
+| `search_query` | String | ✅ | — | `"men shoes"` | Search keyword(s) to crawl. |
+| `pages` | Integer | ❌ | `1` | `4` | Number of search result pages to scrape. |
+| `output` | String | ✅ | — | `products.csv` | Output CSV file name. |
+
+## Dependencies
 * Python >= 3.8
 * scrapy >= 2.16
 * pandas
 * pydantic
-
-# Installation
-* clone repo
-* cd to scraping-ebay-2.0.0
-* install dependencies (run pip install -r requirements.txt)
-
-# How to run
-
-* cd into scrapy-ebay-2.0.0 folder
-* run command: ```scrapy crawl ebay -o output.csv -a search_query='ebay product name' -a pages=1```
-
-# Output 
-* local folder and output.csv file will be created
-* local folder contains images sub-folder and item-specs-jsons subfolder containing json file per product id.
-* Image folder contains multiple child folders named after product post ids.
-
-# To increase number of scraped results
-
-To increase number of scraped results, we need to increase number of pages to be scraped.
-Each page contains 200 products posts.
-
-``` scrapy crawl ebay -o output.csv -a search='your search query' -a pages='number of pages' ```
-
-note: number of allowed pages to scrape per request may have limit set by ebay
 
 # System Components
 
