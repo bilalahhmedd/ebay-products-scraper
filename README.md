@@ -71,3 +71,15 @@ Pipelines
     ├── Export CSV
     └── (Soon) Save Item Specifics JSON
 </pre>
+
+# License
+
+MIT License
+
+---
+
+# Author
+
+Bilal Ahmed
+
+Data Engineer | Web Scraping | Machine Learning Data Pipelines
