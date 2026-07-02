@@ -1,23 +1,23 @@
 A production grade data scraper developed to acquire listing data (product details, images and item-specifications) from ebay.com
 
 # Overview
-E-commerce listing data acquistion demands end to end solution to scrape, validate and store data. This project is an implementation to acquire data from ebay using scrapy framework.
+E-commerce listing data acquistion demands end to end solution to scrape, validate and store data. This project is an implementation to acquire data from ebay using **scrapy**, **python** and **pydantic** using clean architecture.
 This project consists of two saparate scrapy bots.
 ##### scraping-ebay-1.0.3
 ##### scraping-ebay-2.0.0 [latest]
-scraping-ebay-2.0.0 is stable, modernized and fully functional version at moment.
+scraping-ebay-2.0.0 is stable, modernized and functional.
 
 # Quick Start
 * git clone https://github.com/bilalahhmedd/ebay-products-scraper
 * pip install -r requirements.txt
 * cd scraping-ebay-2.0.0
-* run command: ```scrapy crawl ebay -o products.csv -a search_query='ebay product name' -a pages=1```
+* run command: ```scrapy crawl ebay -o products.csv -a search='ebay product name' -a pages=1```
 
 ### Command Arguments
 
 | Argument | Type | Required | Default | Example | Description |
 |----------|------|:--------:|---------|---------|-------------|
-| `search_query` | String | ✅ | — | `"men shoes"` | Search keyword(s) to crawl. |
+| `search` | String | ✅ | — | `"men shoes"` | Search keyword(s) to crawl. |
 | `pages` | Integer | ❌ | `1` | `4` | Number of search result pages to scrape. |
 | `output` | String | ✅ | — | `products.csv` | Output CSV file name. |
 
@@ -71,3 +71,15 @@ Pipelines
     ├── Export CSV
     └── (Soon) Save Item Specifics JSON
 </pre>
+
+# License
+
+MIT License
+
+---
+
+# Author
+
+Bilal Ahmed
+
+Data Engineer | Web Scraping | Machine Learning Data Pipelines
