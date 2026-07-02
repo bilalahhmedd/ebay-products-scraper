@@ -1,11 +1,11 @@
 A production grade data scraper developed to acquire listing data (product details, images and item-specifications) from ebay.com
 
 # Overview
-E-commerce listing data acquistion demands end to end solution to scrape, validate and store data. This project is an implementation to acquire data from ebay using scrapy framework.
+E-commerce listing data acquistion demands end to end solution to scrape, validate and store data. This project is an implementation to acquire data from ebay using **scrapy**, **python** and **pydantic** using clean architecture.
 This project consists of two saparate scrapy bots.
 ##### scraping-ebay-1.0.3
 ##### scraping-ebay-2.0.0 [latest]
-scraping-ebay-2.0.0 is stable, modernized and fully functional version at moment.
+scraping-ebay-2.0.0 is stable, modernized and functional.
 
 # Quick Start
 * git clone https://github.com/bilalahhmedd/ebay-products-scraper
