@@ -30,7 +30,7 @@ class EbaySpider(scrapy.Spider):
 		"""_summary_
 
 		Args:
-			search_query (str, optional): set of product names to be scraped "Tshirt,laced".
+			search (str, optional): set of product names to be scraped "Tshirt,laced".
 			pages (int, optional): number of pages for each product to be scraped
 			size (str, optional): size (s,m,l) of images for each product to be scraped
 		"""
