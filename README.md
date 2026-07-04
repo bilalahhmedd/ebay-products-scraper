@@ -1,3 +1,5 @@
+![Alternative Text](docs/images/overview.png)
+
 A production grade data scraper developed to acquire listing data (product details, images and item-specifications) from ebay.com
 
 # Overview
